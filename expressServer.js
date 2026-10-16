@@ -17,8 +17,9 @@ app.use(cors({
 app.use(express.json()); //This line automatically parses incoming request and makes it available as a parsed object through req.body
 
 
-app.use((req, res, next) => {
-  console.log(req.method, req.url);  //Common Middleware
+app.use("/users",(req, res, next) => {  //sets middleware only for route /users.
+  // console.log(req.method, req.url);  //Common Middleware
+  req.body["discount"]=10;
   next();
 });
 
@@ -38,6 +39,7 @@ function checkLogin(req, res, next) {  //middleware function
 }
 
 app.get("/", checkLogin, (req,res)=>{
+  console.log(req.body);
     res.status(200).json({greeting:"Hi there"});
 });
 
@@ -84,25 +86,25 @@ app.use((err, req, res, next) => {    //If use has 4 parameters it makes it an e
 
 
 
-//Multiple middleware functions
-function checkLogin(req, res, next) {
-  console.log("Checking login...");
-  next();
-}
+// //Multiple middleware functions
+// function checkLogin(req, res, next) {
+//   console.log("Checking login...");
+//   next();
+// }
 
-function validateProfile(req, res, next) {
-  console.log("Validating profile...");
-  next();
-}
+// function validateProfile(req, res, next) {
+//   console.log("Validating profile...");
+//   next();
+// }
 
-app.patch(
-  "/profile",
-  checkLogin,
-  validateProfile,
-  (req, res) => {
-    res.send("Profile updated");
-  }
-);
+// app.patch(
+//   "/profile",
+//   checkLogin,
+//   validateProfile,
+//   (req, res) => {
+//     res.send("Profile updated");
+//   }
+// );
 //
 
 
@@ -119,29 +121,29 @@ app.use("/static", express.static("public"));
 
 
 //Routes
-const express = require("express");
-const router = express.Router();
+// const express = require("express");
+// const router = express.Router();
 
-router.get("/", (req, res) => {
-  res.send("All users");
-});
+// router.get("/", (req, res) => {
+//   res.send("All users");
+// });
 
-router.get("/:id", (req, res) => {
-  res.send(`User ID: ${req.params.id}`);
-});
+// router.get("/:id", (req, res) => {
+//   res.send(`User ID: ${req.params.id}`);
+// });
 
-router.post("/", (req, res) => {
-  res.send("User created");
-});
+// router.post("/", (req, res) => {
+//   res.send("User created");
+// });
 
-module.exports = router;
-
-
+// module.exports = router;
 
 
-const express = require("express");
-const app2 = express();
 
-const userRoutes = require("./userRoutes");
 
-app2.use("/users", userRoutes);
+// const express = require("express");
+// const app2 = express();
+
+// const userRoutes = require("./userRoutes");
+
+// app2.use("/users", userRoutes);

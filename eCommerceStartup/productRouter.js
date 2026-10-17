@@ -1,19 +1,13 @@
 import express from "express";
+import { getProducts,addProduct,getProduct } from "./controllers/productsController.js";
 
 const router = express.Router();
 
-router.get("/",(req,res)=>{
-    res.type("text").status(200).send("Fetching all products");
-});
+router.get("/",getProducts);
 
-router.post("/",(req,res)=>{
-   
-    res.type("text").status(201).send("Adding a new product");
-});
+router.post("/",addProduct);
 
-router.get("/:id",(req,res)=>{
-    res.type("text").status(200).send(`Fetching product with ID: ${req.params.id}`);
-});
+router.get("/:id",getProduct);
 
 export {router};
 

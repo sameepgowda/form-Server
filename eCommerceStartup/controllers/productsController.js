@@ -1,5 +1,12 @@
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+
 const getProducts = (req,res)=>{
-    res.type("text").status(200).send("Fetching all products");
+    const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+    let filePath = path.join(__dirname, "..","View","products.html")
+    res.status(200).sendFile(filePath);
 };
 
 

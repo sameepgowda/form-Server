@@ -1,15 +1,11 @@
 import express from "express";
+import { fetchCart,addProduct } from "./controllers/cartController.js";
 
 const router = express.Router();
 
-router.get("/:userId",(req,res)=>{
-    res.type("text").status(200).send(`Fetching cart of user : ${req.params.userId}`);
-});
+router.get("/:userId",fetchCart);
 
-router.post("/:userId",(req,res)=>{
-   
-    res.type("text").status(201).send(`Adding product to cart for user with ID: ${req.params.userId}`);
-});
+router.post("/:userId",addProduct);
 
 
 export {router};

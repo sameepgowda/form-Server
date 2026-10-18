@@ -1,19 +1,13 @@
 import express from "express";
+import { getUser,addUser,getUsers } from "./controllers/userController.js";
 
 const router = express.Router();
 
-router.get("/",(req,res)=>{
-    res.type("text").status(200).send("Fetching all users");
-});
+router.get("/",getUsers);
 
-router.post("/",(req,res)=>{
-   
-    res.type("text").status(201).send("Adding a new product");
-});
+router.post("/",addUser);
 
-router.get("/:id",(req,res)=>{
-    res.type("text").status(200).send(`Fetching user with ID: ${req.params.id}`);
-});
+router.get("/:id",getUsers);
 
 export {router};
 

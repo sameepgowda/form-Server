@@ -7,7 +7,7 @@ router.get("/",getUsers);
 
 router.post("/",addUser);
 
-router.get("/:id",getUsers);
+router.get("/:id",getUser);
 
 export {router};
 

@@ -1,5 +1,7 @@
 import express from "express";
 import userRouter from "../routes/userRoute.js";
+import busRouter from "../routes/busRoutes.js";
+
 
 const app = express();
 
@@ -7,7 +9,9 @@ app.use(express.json());
 
 console.log("ROUTER TYPE",typeof userRouter.router);
 
-app.use("/",userRouter.router);
+app.use("/users",userRouter.router);
+
+app.use("/buses",busRouter.router);
 
 app.use((req,res)=>{
     res.status(404).type("text").send("Page not found");

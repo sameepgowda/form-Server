@@ -7,6 +7,7 @@ const insertUser =  (req,res)=>{
         const insertUserQuery = "insert into userList (name,email) values(?,?)"
         connection.execute(insertUserQuery,[req.body.name,req.body.email],(err,result)=>{
             if(err){
+                res.status(500).json({error:"Database Error"});
                 console.log("insert error",err);
             }else{
                 console.log("insert result",result);

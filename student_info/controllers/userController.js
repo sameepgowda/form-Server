@@ -3,7 +3,7 @@ import connection from "../utils/db.js";
 const insertUser =  (req,res)=>{
     
     if(req.body.name && req.body.email){
-        console.log(req.body);
+        
         const insertUserQuery = "insert into userList (name,email) values(?,?)"
         connection.execute(insertUserQuery,[req.body.name,req.body.email],(err,result)=>{
             if(err){

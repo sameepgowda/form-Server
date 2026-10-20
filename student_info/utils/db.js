@@ -1,4 +1,11 @@
 import mysql from "mysql2";
+// const Sequelize = require("sequelize");
+import { Sequelize } from "sequelize";
+
+const sequelize = new Sequelize('test_db','root','Redblack$1$',{
+    host:'localhost',
+    dialect:'mysql'
+});
 
 const connection = mysql.createConnection({
     host: "localhost",

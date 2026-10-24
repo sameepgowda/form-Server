@@ -52,12 +52,33 @@ const Bus = sequelize.define("Bus",{
         tableName:"busList",
         timestamps:false
         
-    })
+    });
+
+
+const Booking = sequelize.define("Booking",{
+    id:{
+        type:DataTypes.INTEGER,
+        allowNull:false,
+        autoIncrement:true,
+        primaryKey:true
+    }
+
+},
+
+{
+    tableName:"Bookings",
+timestamps:false})
+
+User.hasMany(Booking
+);
+Booking.belongsTo(User);
+Bus.hasMany(Booking);
+Booking.belongsTo(Bus);
 
 
 await sequelize.sync();
 //await sequelize.sync(); Synchronizes all models
-export default {sequelize,User,Bus}
+export default {sequelize,User,Bus,Booking}
 
 const connection = mysql.createConnection({
     host: "localhost",

@@ -1,6 +1,7 @@
 import express from "express";
 import userRouter from "../routes/userRoute.js";
 import busRouter from "../routes/busRoutes.js";
+import bookingRouter from "../routes/bookingRoutes.js"
 
 import cors from "cors";
 
@@ -17,6 +18,8 @@ console.log("ROUTER TYPE",typeof userRouter.router);
 app.use("/users",userRouter.router);
 
 app.use("/buses",busRouter.router);
+
+app.use("/bookings",bookingRouter.router);
 
 app.use((req,res)=>{
     res.status(404).type("text").send("Page not found");

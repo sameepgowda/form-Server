@@ -17,6 +17,9 @@ const testSequelizeConnection = async ()=>{
 
 testSequelizeConnection();
 
+
+//sequelize.define() is one of the synchronous operation in sequelize
+//The CRUD operations are asynchronous
 const User = sequelize.define("User",{
     name:{
         type:DataTypes.STRING,
@@ -38,7 +41,23 @@ const User = sequelize.define("User",{
 );
 
 
-User.sync();
+const Bus = sequelize.define("Bus",{
+    seatsAvailable:{
+        type:DataTypes.INTEGER,
+        allowNull:false
+    }
+   
+},
+ {
+        tableName:"busList",
+        timestamps:false
+        
+    })
+
+
+await sequelize.sync();
+//await sequelize.sync(); Synchronizes all models
+export default {sequelize,User,Bus}
 
 const connection = mysql.createConnection({
     host: "localhost",
@@ -67,4 +86,61 @@ const connection = mysql.createConnection({
 //     }
 // })
 
-export default {connection,sequelize, User};
+
+//Other synchronous operations of sequelize
+// User.build() — creates an in-memory model instance without saving it to the database.
+
+// User.getAttributes() — retrieves the model's attribute definitions.
+
+// User.hasMany() — defines an association between models
+
+// export default {connection,sequelize, User};
+
+//console.log(result instanceof Promise); to check whether it returns a promise
+
+//
+// CREATE TABLE Students (
+//     id INT PRIMARY KEY AUTO_INCREMENT,
+//     name VARCHAR(100) NOT NULL,
+//     teacher_id INT,
+//     FOREIGN KEY (teacher_id) REFERENCES Teachers(id)
+// );Here sql doesn't allow a student without a valid teacher id thats present as id in the teachers table
+
+//Teacher.hasMany(Student, {
+//     foreignKey: "teacher_id"
+// }); Creates the foreign key teacher_id in student table
+
+
+
+// const Teacher = sequelize.define("Teacher", {
+//     name: DataTypes.STRING
+// });
+
+// const Student = sequelize.define("Student", {
+//     name: DataTypes.STRING
+// });
+
+// Teacher.hasMany(Student);
+//Creates a foreign key TeacherId in student table
+
+
+
+// Person.hasOne(Passport, {
+//     foreignKey: {
+//         name: "person_id",
+//         allowNull: false,
+//         unique: true
+//     }
+// });
+
+
+// const person = await Person.findByPk(1, {
+//     include: Passport
+// });                       //Left outer join
+// 
+
+// const person = await Person.findByPk(1, {
+//     include: Passport,
+//     required:true
+// });                     //inner join
+

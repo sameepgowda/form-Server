@@ -1,6 +1,28 @@
 import connection from "../utils/db.js";
 import dbObj from "../utils/db.js";
 
+
+const getUsers = async (req,res)=>{
+    try{
+
+        const users = await dbObj.User.findAll();
+        let userList = [];
+        for(let obj of users){
+            console.log("obj",obj.dataValues);
+            userList = [...userList,obj.dataValues];
+        }
+         console.log("GET ALL USERS",users);
+         res.status(200).json({message:"Fetching all users",
+            userList:userList
+         });
+    }catch(err){
+        console.log("err",err)
+        res.status(500).send({message:"Database error",error:err.message});
+    }
+   
+    
+}
+
 const insertUser =  async (req,res)=>{
     console.log("1",dbObj);
     console.log("2",dbObj.User)
@@ -107,10 +129,12 @@ const deleteUser = (req,res)=>{
     }
 }
 
-export default {insertUser,updateUser,deleteUser};
+export default {insertUser,updateUser,deleteUser, getUsers};
 
 
 //Remember the difference between parseInt() and Number();
+
+//Remember that all CRUD operations using sequelize are async and they return a promise
 
 
 
@@ -126,7 +150,7 @@ export default {insertUser,updateUser,deleteUser};
 //         }
 //     }
 // );
-//For and consition, use Op.and
+//For and condition, use Op.and
 
 
 //const user = await User.findByPk(1);Finds by primary key 1
@@ -148,3 +172,34 @@ export default {insertUser,updateUser,deleteUser};
 //         email: "bob@example.com"
 //     }
 // }); finds all the rows where condition is matched.
+
+
+
+//Bulk insert using sequelize
+// const users = await User.bulkCreate([
+//     {
+//         name: "Alice",
+//         email: "alice@gmail.com"
+//     },
+//     {
+//         name: "Bob",
+//         email: "bob@gmail.com"
+//     },
+//     {
+//         name: "Charlie",
+//         email: "charlie@gmail.com"
+//     }
+// ]);
+
+
+//Person.hasOne(Passport, { foreignKey: "person_id" });
+
+//Person.findByPk(1, { include: Passport })?
+//returns the left outer join:Person left join Passport
+//By default, Sequelize assumes that this foreign key references the primary key of the source model, which is normally Person.id.
+
+
+// const users = await User.findAll({
+//     raw: true
+// });
+//Returns raw objects

@@ -2,8 +2,13 @@ import express from "express";
 import userRouter from "../routes/userRoute.js";
 import busRouter from "../routes/busRoutes.js";
 
+import cors from "cors";
+
 
 const app = express();
+app.use(cors({
+    origin: "http://192.168.0.104:5500"
+}));
 
 app.use(express.json());
 

@@ -1,0 +1,31 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My First HTML Page</title>
+</head>
+<body>
+     <form id="userForm" onSubmit="submitForm(event)">
+        <input
+            type="text"
+            id="username"
+            placeholder="Enter username"
+            required
+        >
+
+        <input
+            type="email"
+            id="email"
+            placeholder="Enter email"
+            required
+        >
+
+        <button type="submit" id="submitBtn">Submit</button>
+    </form>
+    <div id="userList"></div>
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+<script src="script.js"></script>
+</body>
+</html>

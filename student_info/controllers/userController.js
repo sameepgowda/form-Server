@@ -111,18 +111,25 @@ const updateUser =  async (req,res)=>{
 }
 
 
-const deleteUser = (req,res)=>{
+const deleteUser = async (req,res)=>{
     if(req.params.id){
-        const id = parseInt(req.params.id);
-        const deleteQuery = `delete from userList where id = (?)`;
-        connection.execute(deleteQuery,[id],(err,result)=>{
-            if(err){
-                res.status(500).json({error:"Database error"});
-            }else{
-                console.log("delete result",result);
-                res.status(204).end();
+        // const id = parseInt(req.params.id);
+        // const deleteQuery = `delete from userList where id = (?)`;
+        // connection.execute(deleteQuery,[id],(err,result)=>{
+        //     if(err){
+        //         res.status(500).json({error:"Database error"});
+        //     }else{
+        //         console.log("delete result",result);
+        //         res.status(204).end();
+        //     }
+        // })
+
+        await dbObj.User.destroy({
+            where:{
+                id:req.params.id
             }
-        })
+        });
+        res.status(200).json({message:"User deleted successfully"})
 
     }else{
         res.status(400).jason({error:"Bad request"});

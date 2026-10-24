@@ -210,3 +210,41 @@ export default {insertUser,updateUser,deleteUser, getUsers};
 //     raw: true
 // });
 //Returns raw objects
+
+
+
+
+
+// User.findAll({where:{id:[1,2,3]}})
+
+// Employee.belongsTo(Department, {
+//     foreignKey: "department_id"
+// }); one-to many association
+
+
+
+// const departments = await Department.findAll({
+//     include: Employee
+// });
+
+// console.log(departments); department left outer join employee
+
+
+//
+//Many to Many associations
+// Student.belongsToMany(Course, {
+//     through: "StudentCourses"
+// });
+
+// Course.belongsToMany(Student, {
+//     through: "StudentCourses"
+// });
+//StudentCourses is the junction table/full outer join between Student and Course
+// Once Sequelize processes these associations, a Student instance gets methods such as:
+// - student.getCourses() — fetch associated courses.
+// - student.addCourse(course) — associate one course.
+// - student.addCourses(courses) — associate multiple courses.
+// - student.removeCourse(course) — remove one association.
+// - student.setCourses(courses) — replace the associated courses.
+// - student.hasCourse(course) — check whether a course is associated.
+

@@ -1,0 +1,47 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Expense Tracker</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="expensePage.js" defer></script>
+</head>
+<body>
+
+    <h1>Expense Tracker</h1>
+
+    <form id="expenseForm" onSubmit="addExpense(event)">
+        <label for="amount">Expense Amount:</label>
+        <input id="amount" type="number">
+        <br><br>
+
+        <label for="description">Description:</label>
+        <input type="text" id="description">
+        <br><br>
+
+        <label for="category">Category:</label>
+        <select id="category">
+            <option value="">Select Category</option>
+            <option value="Food">Food</option>
+            <option value="Travel">Travel</option>
+            <option value="Shopping">Shopping</option>
+            <option value="Bills">Bills</option>
+            <option value="Other">Other</option>
+        </select>
+        <br><br>
+
+        <button type="submit">Add Expense</button>
+    </form>
+
+    <p id="message"></p>
+
+    <hr>
+
+    <h2>Previous Expenses</h2>
+
+    <div id="expenseList"></div>
+
+</body>
+</html>

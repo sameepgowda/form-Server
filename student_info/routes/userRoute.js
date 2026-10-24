@@ -3,6 +3,8 @@ import express from "express";
 
 const router = express.Router();
 
+router.get("/getUsers",userController.getUsers)
+
 router.post("/insertUser",userController.insertUser);
 
 router.post("/updateUser",userController.updateUser);

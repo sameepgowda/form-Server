@@ -5,4 +5,6 @@ const router = express.Router();
 
 router.post("/",busController.addBus);
 
+router.get("/available/:seats",busController.getBuses)
+
 export default {router};

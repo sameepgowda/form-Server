@@ -3,13 +3,15 @@ import {User} from "../../Database/index.js";
 
 const createUser = async (req,res)=>{
 
-    if(req.body.username){
+    if(req.body.username && req.body.email && req.body.password){
         try{
-            const username = req.body.username;
-        const createId = await User.create({username});
+            const {username,email,password} = req.body;
+        const createId = await User.create({username,email,password});
         const responseData = {
             userId:createId.dataValues.id,
-            username
+            username,
+            email,
+            password
         }
         return res.status(201).json({message:"User created",
             userInfo:responseData

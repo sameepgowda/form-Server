@@ -3,11 +3,7 @@ import cors from "cors";
 import userRouter from "../Routes/userRoute.js";
 import expenseRouter from "../Routes/expenseRoute.js";
 import {sequelize} from "../../Database/db.js";
-
-
-// app.use(cors({
-//     origin: "http://192.168.0.104:5500"
-// }));
+// import cors from "cors";
 
 
 await sequelize.authenticate();
@@ -15,6 +11,10 @@ await sequelize.authenticate();
 await sequelize.sync();
 
 const app = express();
+
+app.use(cors({
+    origin: "http://localhost:5173"
+}));
 
 
 app.use(express.json());

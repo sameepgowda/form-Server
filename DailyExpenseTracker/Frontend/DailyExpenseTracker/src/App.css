@@ -1,0 +1,105 @@
+
+/* Apply predictable sizing to every element */
+* {
+  box-sizing: border-box;
+}
+
+html {
+  width: 100%;
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  font-family: Arial, sans-serif;
+  background: #f3f4f6;
+}
+
+/* Center the form on the screen */
+.signup-container {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 24px;
+}
+
+/* Form sizing for desktop and mobile */
+.signup-form {
+  width: 100%;
+  max-width: 400px;
+  padding: 32px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;
+}
+
+.signup-form h2 {
+  margin: 0 0 8px;
+  text-align: center;
+}
+
+.signup-form p {
+  text-align: center;
+  color: #666;
+  margin: 0 0 24px;
+}
+
+.signup-form label {
+  margin-bottom: 6px;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.signup-form input {
+  width: 100%;
+  min-width: 0;
+  padding: 12px;
+  margin-bottom: 18px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 16px;
+}
+
+.signup-form input:focus {
+  outline: 2px solid #6366f1;
+  border-color: transparent;
+}
+
+.signup-form button {
+  width: 100%;
+  min-height: 44px;
+  padding: 12px;
+  background: #4f46e5;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.signup-form button:hover {
+  background: #4338ca;
+}
+
+/* Adjust layout for smaller phone screens */
+@media (max-width: 480px) {
+  .signup-container {
+    padding: 16px;
+    align-items: flex-start;
+  }
+
+  .signup-form {
+    padding: 24px 20px;
+    border-radius: 10px;
+  }
+
+  .signup-form h2 {
+    font-size: 23px;
+  }
+}

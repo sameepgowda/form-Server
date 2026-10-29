@@ -1,4 +1,5 @@
 import {User} from "../../Database/index.js";
+import bcrypt from "bcrypt";
 
 
 const createUser = async (req,res)=>{
@@ -6,7 +7,8 @@ const createUser = async (req,res)=>{
     if(req.body.username && req.body.email && req.body.password){
         try{
             const {username,email,password} = req.body;
-        const createId = await User.create({username,email,password});
+            const hashedPassword = await bcrypt.hash(password,10);
+        const createId = await User.create({username,email,password:hashedPassword});
         const responseData = {
             userId:createId.dataValues.id,
             username,
@@ -35,7 +37,8 @@ const userLogin = async (req,res)=>{
         if(userInfo.length==0){
             return res.status(404).json({message:"User not found",success:false});
         }else{
-            if(userInfo[0].password==password){
+            const passwordsMatch = await bcrypt.compare(password,userInfo[0].password);
+            if(passwordsMatch){
                 return res.status(200).json({message:"Login successful",success:true})
             }else{
                 return res.status(401).json({message:"User not authorized",success:false})

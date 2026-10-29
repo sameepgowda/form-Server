@@ -31,7 +31,7 @@ const navigate = useNavigate();
         password:formData.password
     }
     try{
-       const response =  await axios.post("http://localhost:3000/expenseTracker/user/signup",payload);
+       const response =  await axios.post("http://localhost:3000/expenseTracker/user/createUser",payload);
 
     }catch(err){
         console.log(err.message);

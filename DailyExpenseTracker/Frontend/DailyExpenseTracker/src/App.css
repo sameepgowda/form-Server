@@ -1,5 +1,5 @@
 
-/* Apply predictable sizing to every element */
+
 * {
   box-sizing: border-box;
 }
@@ -17,9 +17,9 @@ body {
   background: #f3f4f6;
 }
 
-/* Center the form on the screen */
+
 .signup-container {
-  min-height: 100vh;
+  /* min-height: 100vh; */
   min-height: 100dvh;
   display: flex;
   justify-content: center;

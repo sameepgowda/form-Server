@@ -1,6 +1,6 @@
 import { ExpenseData, DailyBalance } from "../../Database/index.js";
 import {sequelize} from "../../Database/db.js";
-import { Op, literal } from "sequelize";
+import { Op, literal , fn, col, QueryTypes } from "sequelize";
 
 const addExpense = async (req,res)=>{
         let {UserId, date, expenseName, expenseAmount, description} = req.body;
@@ -130,6 +130,62 @@ const getDailyBalance = async (req,res)=>{
     }
 }
 
+const deleteExpense = async (req,res)=>{
+    if(req.body.id && req.body.UserId && req.body.expenseAmount && req.body.date){
+        let {id, UserId, expenseAmount, date, expenseName} = req.body;
+        expenseAmount = Number(expenseAmount);
+        const t3 = await sequelize.transaction();
+        try{
+            const deleteData = await ExpenseData.destroy({where:{id,UserId},
+            transaction:t3});
+            console.log("deleteData",deleteData);
+            if(deleteData>0){
+            await DailyBalance.update({closingBalance:literal(`closingBalance -${expenseAmount}`)},
+        {where:{
+            UserId,date:{[Op.gte]:date}}
+        , transaction:t3});
+            }
+
+        await t3.commit();
+        res.status(200).json({message:"Expense successfully deleted",
+            expenseInfo:{UserId,expenseId:id,expenseName}
+        })
+
+        }catch(err){
+            await t3.rollback();
+            console.log(err);
+            res.status(500).json({error:err.message});
+        }
+    }else{
+        res.status(400).json({message:"Bad Request"});
+    }
+}
+
+const bulkDeleteExpense = async (req, res)=>{
+    if(req.body.UserId && req.body.date && req.body.totalCreditOfTheDay && req.body.totalDebitOfTheDay){
+        let {UserId, date, totalCreditOfTheDay, totalDebitOfTheDay } = req.body;
+        totalCreditOfTheDay =Number(totalCreditOfTheDay);
+        totalDebitOfTheDay = Number(totalDebitOfTheDay);
+        const t4 = await sequelize.transaction();
+        try{
+                const deleteData = await ExpenseData.destroy({where:{UserId,date},transaction:t4});
+                if(deleteData>0){
+                    await DailyBalance.update({closingBalance:literal(`closingbalance - ${totalCreditOfTheDay} - ${totalDebitOfTheDay}`)},
+                {where:{UserId,date:{[Op.gte]:date}},transaction:t4})
+                };
+                await DailyBalance.destroy({where:{UserId,date},transaction:t4});
+                await t4.commit();
+                res.status(200).json({message:"Deletion successful"});
+        }catch(err){
+            await t4.rollback();
+            res.status(500).json({error:err.message});
+        }
+
+    }else{
+        res.status(400).json({message:"Bad Request"});
+    }
+}
+
 const getMonthlyReport = async (req,res)=>{
     let {month,year,UserId} = req.body;
     if(month && year && UserId){
@@ -189,20 +245,51 @@ const getMonthlyReport = async (req,res)=>{
             while(currDate<endDate) {
                 const filteredData = monthlyExpenseData.filter((obj)=>obj.date==currDate);
                 // console.log("i",dailyExpenses);
-                
+                let totalCreditOfTheDay = 0;
+                let totalDebitOfTheDay = 0;              
                 let dailyExpensesObj = {};
-                if(filteredData.length>0)
-                {dailyExpensesObj[currDate] = filteredData;
+                if(filteredData.length>0){
+                
+                totalCreditOfTheDay = filteredData.reduce((accum,obj)=>{
+                if(obj.expenseAmount>0){
+                    
+                return accum + Number(obj.expenseAmount)
+                }else{
+                    return accum
+                }
+            },0);
+
+            totalDebitOfTheDay = filteredData.reduce((accum,obj)=>{
+                if(obj.expenseAmount<0){
+                    
+                return accum + Number(obj.expenseAmount)
+                }else{
+                    return accum
+                }
+            },0);
+
+            
+                {dailyExpensesObj[currDate] = {totalCreditOfTheDay,totalDebitOfTheDay,
+                    ExpenseInfo:filteredData};
                     
                 dailyExpenses.push(dailyExpensesObj);
                 }
+            }
                 
                 let dateObj = new Date(currDate);
                 dateObj.setDate(dateObj.getDate() + 1);
                 let dateStr = dateObj.toISOString().slice(0, 10);
                 currDate = dateStr;
                 // console.log(currDate);
-            }    
+            } 
+            
+            dailyExpenses.sort((a,b)=>{
+                console.log(a)
+                let dateA = Object.keys(a)[0];
+                let dateB = Object.keys(b)[0];
+
+                return new Date(dateB) - new Date(dateA);
+            })
            
         
     }else{
@@ -213,6 +300,7 @@ const getMonthlyReport = async (req,res)=>{
             }
         },raw:true,order:[["date","desc"]]});
         if(balanceData.length>0){
+
             totalMonthlyBalance = balanceData[0].closingBalance;
         }
     }
@@ -234,4 +322,70 @@ const getMonthlyReport = async (req,res)=>{
     }
 }
 
-export default {addExpense,getDailyBalance, getMonthlyReport};
+const getYearlyReport = async (req,res)=>{
+    if(req.body.UserId && req.body.year){
+        
+        try{
+            const {UserId,year} = req.body;
+        const startDate = `${String(req.body.year)}-01-01`;
+        const endDate = `${String(req.body.year)}-12-31`;
+    
+
+    const monthlyExpense = await ExpenseData.findAll({attributes:[[fn("MONTH",col("date")),"month"],[fn("SUM", col("expenseAmount") ),"totalExpense"]],
+   
+where:{UserId,date:{[Op.gte]:startDate,[Op.lt]:endDate},expenseAmount:{[Op.lt]:0}},group:[fn("MONTH",col("date"))],order:[[fn("MONTH",col("date")),"desc"]],raw:true});
+
+  const monthlyCredit = await ExpenseData.findAll({attributes:[[fn("MONTH",col("date")),"month"],[fn("SUM", col("expenseAmount") ),"totalCredit"]],
+   
+where:{UserId,date:{[Op.gte]:startDate,[Op.lt]:endDate},expenseAmount:{[Op.gt]:0}},group:[fn("MONTH",col("date"))],order:[[fn("MONTH",col("date")),"desc"]],raw:true});
+//   console.log(monthlyExpenses);
+const monthlyBalances = await sequelize.query(`
+    SELECT month, closingBalance
+    FROM (
+        SELECT
+            MONTH(date) AS month,
+            date,
+            closingBalance,
+            ROW_NUMBER() OVER (
+                PARTITION BY YEAR(date), MONTH(date)
+                ORDER BY date DESC
+            ) AS rn
+        FROM DailyBalance
+        WHERE UserId = :UserId
+          AND date >= :startDate
+          AND date < :endDate
+    ) AS monthly
+    WHERE rn = 1
+    ORDER BY month DESC
+`, {
+    replacements: { UserId, startDate, endDate },
+    type: QueryTypes.SELECT
+});
+
+console.log("mothlyBalance",monthlyBalances);
+let responseArr = [];
+if(monthlyBalances.length>0){
+    responseArr = monthlyBalances.map((obj)=>{
+        const expense = monthlyExpense.find(x=>x.month==obj.month)||{totalExpense:0};
+        const credit = monthlyCredit.find(x=>x.month==obj.month)||{totalCredit:0};
+        return{...obj,totalExpense:expense.totalExpense,totalCredit:credit.totalCredit}
+    })
+}
+
+res.status(200).json({monthlyReport:responseArr})
+
+
+
+}catch(err){
+    res.status(500).json({error:err.message});
+    console.log(err);
+  }
+
+ }else{
+
+ }
+
+
+}
+
+export default {addExpense,getDailyBalance, getMonthlyReport, deleteExpense, bulkDeleteExpense, getYearlyReport};

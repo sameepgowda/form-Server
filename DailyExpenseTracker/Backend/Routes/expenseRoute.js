@@ -10,5 +10,11 @@ router.post("/getDailyBalance", expenseController.getDailyBalance);
 
 router.post("/getMonthlyReport",expenseController.getMonthlyReport);
 
+router.post("/deleteExpense", expenseController.deleteExpense);
+
+router.post("/bulkDeleteExpense", expenseController.bulkDeleteExpense);
+
+router.post("/getYearlyReport",expenseController.getYearlyReport);
+
 
 export default router;

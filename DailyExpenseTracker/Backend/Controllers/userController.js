@@ -38,7 +38,7 @@ const userLogin = async (req,res)=>{
             if(userInfo[0].password==password){
                 return res.status(200).json({message:"Login successful",success:true})
             }else{
-                return res.status(404).json({message:"Passwords do not match",success:false})
+                return res.status(401).json({message:"User not authorized",success:false})
             }
         }
         }catch(err){
@@ -52,3 +52,8 @@ const userLogin = async (req,res)=>{
 
 
 export default {createUser, userLogin};
+
+
+
+
+//401 is authentication and 403 is access

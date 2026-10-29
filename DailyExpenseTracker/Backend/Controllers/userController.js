@@ -27,5 +27,28 @@ const createUser = async (req,res)=>{
 
 }
 
+const userLogin = async (req,res)=>{
+    if(req.body.email && req.body.password){
+        try{
+            const {email, password} = req.body;
+        const userInfo = await User.findAll({where:{email},raw:true});
+        if(userInfo.length==0){
+            return res.status(404).json({message:"User not found",success:false});
+        }else{
+            if(userInfo[0].password==password){
+                return res.status(200).json({message:"Login successful",success:true})
+            }else{
+                return res.status(404).json({message:"Passwords do not match",success:false})
+            }
+        }
+        }catch(err){
+            res.status(500).json({error:err.message});
+        }
+        
+    }else{
+        res.status(400).json({message:"Bad request"})
+    }
+}
 
-export default {createUser};
+
+export default {createUser, userLogin};

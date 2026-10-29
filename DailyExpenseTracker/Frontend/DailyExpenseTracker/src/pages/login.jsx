@@ -1,6 +1,7 @@
 
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 
 function Login() {
   const navigate = useNavigate();
@@ -17,9 +18,22 @@ function Login() {
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log(formData);
+    const payload = {
+        email:formData.email,
+        password:formData.password
+    }
+    try{
+        const response = await axios.post("http://localhost:3000/expenseTracker/user/login",payload);
+        console.log(response);
+        if(response.status==200){
+            window.alert("Login Successful");
+        }
+    }catch(err){
+        window.alert(err.message);
+        console.log(err);
+    }
   };
 
   return (

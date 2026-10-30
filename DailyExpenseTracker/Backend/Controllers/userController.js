@@ -20,7 +20,7 @@ const createUser = async (req,res)=>{
         })
         }catch(err){
             res.status(500).json({error:err.message});
-            throw err;
+            console.log(err);
         }
         
     }else{
@@ -33,19 +33,21 @@ const userLogin = async (req,res)=>{
     if(req.body.email && req.body.password){
         try{
             const {email, password} = req.body;
-        const userInfo = await User.findAll({where:{email},raw:true});
+        const userInfo = await User.findOne({where:{email},raw:true});
+        console.log("userInfo",userInfo);
         if(userInfo.length==0){
             return res.status(404).json({message:"User not found",success:false});
         }else{
-            const passwordsMatch = await bcrypt.compare(password,userInfo[0].password);
+            const passwordsMatch = await bcrypt.compare(password,userInfo.password);
             if(passwordsMatch){
-                return res.status(200).json({message:"Login successful",success:true})
+                return res.status(200).json({message:"Login successful",success:true,UserId:userInfo.id})
             }else{
                 return res.status(401).json({message:"User not authorized",success:false})
             }
         }
         }catch(err){
             res.status(500).json({error:err.message});
+            console.log(err);
         }
         
     }else{

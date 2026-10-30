@@ -2,13 +2,14 @@ import { ExpenseData, DailyBalance } from "../../Database/index.js";
 import {sequelize} from "../../Database/db.js";
 import { Op, literal , fn, col, QueryTypes } from "sequelize";
 
-const addExpense = async (req,res)=>{
-        let {UserId, date, expenseName, expenseAmount, description} = req.body;
+const addExpense = async (req,res, next)=>{
+        let {UserId, date, category, expenseAmount, description} = req.body;
+        console.log(req.body);
         expenseAmount=Number(expenseAmount);
-        if(UserId && date && expenseAmount){
+        if(UserId && date && expenseAmount && category){
             const transaction = await sequelize.transaction();
             try{
-                const expenseId = await ExpenseData.create({UserId, date, expenseName, expenseAmount, description},
+                const expenseId = await ExpenseData.create({UserId, date, category, expenseAmount, description},
                     {transaction}
                 );
 
@@ -58,15 +59,14 @@ const addExpense = async (req,res)=>{
                         expenseId : expenseId.dataValues.id,
                         UserId,
                         date,
-                        expenseName,
+                        category,
                         expenseAmount,
                         description
                     }
                 })
             }catch(err){
                 await transaction.rollback();
-                res.status(500).json({error:err.message});
-                console.log(err);
+                next(err);
             }
         }else{
             return res.status(400).json({message:"Bad request"});
@@ -132,7 +132,7 @@ const getDailyBalance = async (req,res)=>{
 
 const deleteExpense = async (req,res)=>{
     if(req.body.id && req.body.UserId && req.body.expenseAmount && req.body.date){
-        let {id, UserId, expenseAmount, date, expenseName} = req.body;
+        let {id, UserId, expenseAmount, date, category} = req.body;
         expenseAmount = Number(expenseAmount);
         const t3 = await sequelize.transaction();
         try{
@@ -148,7 +148,7 @@ const deleteExpense = async (req,res)=>{
 
         await t3.commit();
         res.status(200).json({message:"Expense successfully deleted",
-            expenseInfo:{UserId,expenseId:id,expenseName}
+            expenseInfo:{UserId,expenseId:id,category}
         })
 
         }catch(err){
@@ -333,11 +333,11 @@ const getYearlyReport = async (req,res)=>{
 
     const monthlyExpense = await ExpenseData.findAll({attributes:[[fn("MONTH",col("date")),"month"],[fn("SUM", col("expenseAmount") ),"totalExpense"]],
    
-where:{UserId,date:{[Op.gte]:startDate,[Op.lt]:endDate},expenseAmount:{[Op.lt]:0}},group:[fn("MONTH",col("date"))],order:[[fn("MONTH",col("date")),"desc"]],raw:true});
+where:{UserId,date:{[Op.gte]:startDate,[Op.lte]:endDate},expenseAmount:{[Op.lt]:0}},group:[fn("MONTH",col("date"))],order:[[fn("MONTH",col("date")),"desc"]],raw:true});
 
   const monthlyCredit = await ExpenseData.findAll({attributes:[[fn("MONTH",col("date")),"month"],[fn("SUM", col("expenseAmount") ),"totalCredit"]],
    
-where:{UserId,date:{[Op.gte]:startDate,[Op.lt]:endDate},expenseAmount:{[Op.gt]:0}},group:[fn("MONTH",col("date"))],order:[[fn("MONTH",col("date")),"desc"]],raw:true});
+where:{UserId,date:{[Op.gte]:startDate,[Op.lte]:endDate},expenseAmount:{[Op.gt]:0}},group:[fn("MONTH",col("date"))],order:[[fn("MONTH",col("date")),"desc"]],raw:true});
 //   console.log(monthlyExpenses);
 const monthlyBalances = await sequelize.query(`
     SELECT month, closingBalance
@@ -382,7 +382,7 @@ res.status(200).json({monthlyReport:responseArr})
   }
 
  }else{
-
+ res.status(400).json({message:'Bad Request'});
  }
 
 

@@ -1,4 +1,4 @@
-import { Sequelize, DataTypes } from "sequelize";
+import { Sequelize } from "sequelize";
 
 const sequelize = new Sequelize('daily_expense_tracker','root','Redblack$1$',{
     host:'localhost',

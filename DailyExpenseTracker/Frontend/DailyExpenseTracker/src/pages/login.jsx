@@ -29,6 +29,8 @@ function Login() {
         console.log(response);
         if(response.status==200){
             window.alert("Login Successful");
+            sessionStorage.setItem("UserId",response.data.UserId);
+            navigate("/home");
         }
     }catch(err){
         window.alert(err.message);

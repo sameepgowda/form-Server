@@ -20,7 +20,7 @@ const ExpenseData = sequelize.define("ExpenseData",{
         type:DataTypes.DECIMAL(12,2),
         allowNull:false
     },
-    expenseName:{
+    category:{
         type:DataTypes.STRING,
         allowNull:false
     },

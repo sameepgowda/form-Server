@@ -7,11 +7,13 @@ const router = express.Router();
 
 router.post("/addExpense",authMiddleware,expenseController.addExpense);
 
+router.post("/editExpense", authMiddleware, expenseController.editExpense)
+
 router.post("/getDailyBalance", authMiddleware, expenseController.getDailyBalance);
 
 router.post("/getMonthlyReport",authMiddleware,expenseController.getMonthlyReport);
 
-router.post("/deleteExpense", authMiddleware, expenseController.deleteExpense);
+router.delete("/deleteExpense/:id", authMiddleware, expenseController.deleteExpense);
 
 router.post("/bulkDeleteExpense",authMiddleware, expenseController.bulkDeleteExpense);
 

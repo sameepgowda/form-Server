@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import userRouter from "../Routes/userRoute.js";
 import expenseRouter from "../Routes/expenseRoute.js";
+import paymentRouter from "../Routes/paymentRoute.js";
 import {sequelize} from "../../Database/db.js";
 // import cors from "cors";
 import errorHandler from "../Controllers/errorHandler.js";
@@ -21,6 +22,7 @@ app.use(express.json());
 
 app.use("/expenseTracker/user",userRouter);
 app.use("/expenseTracker/expense",expenseRouter);
+app.use("/expenseTracker/payment", paymentRouter);
 
 app.use("/expenseTracker",errorHandler);
 

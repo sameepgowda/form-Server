@@ -12,7 +12,7 @@ const authMiddleware = (req,res,next) =>{
             return res.status(401).json({message:"Access denied. No token provided"});
         }else{
                 const decoded = jwt.verify(authToken,JWTkey);
-                    req.body.UserId = decoded.UserId;
+                    req.UserId = decoded.UserId;
                     next();
         
         }

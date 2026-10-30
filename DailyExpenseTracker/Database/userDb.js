@@ -24,4 +24,8 @@ const User = sequelize.define("User",{
     
 });
 
+// const PremiumUser = sequelize.define("PremiumUser",{
+    
+// })
+
 export {User};

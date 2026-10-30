@@ -1,6 +1,7 @@
 
 import { useEffect, useState } from 'react';
 import axios from 'axios';
+import { load } from "@cashfreepayments/cashfree-js";
 
 function getTodayDate() {
     const today = new Date();
@@ -12,14 +13,14 @@ function getTodayDate() {
 }
 
 function Home() {
-    const userId = sessionStorage.getItem("UserId");
+    const [selectedDate, setSelectedDate] = useState(getTodayDate());
 
     const [formData, setFormData] = useState({
         description: '',
         transactionType: 'debit',
         amount: '',
         category: 'Food',
-        date: getTodayDate()
+        id:null
     });
 
     const [transactions, setTransactions] = useState({
@@ -31,22 +32,69 @@ function Home() {
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState('');
     const [showForm, setShowForm] = useState(false);
+    const [editingTransaction, setEditingTransaction] = useState(null);
+
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [transactionToDelete, setTransactionToDelete] = useState(null);
 
     const ADD_EXPENSE_API =
         "http://localhost:3000/expenseTracker/expense/addExpense";
+    
+    const EDIT_EXPENSE_API = "http://localhost:3000/expenseTracker/expense/editExpense";
 
     const GET_EXPENSES_API =
         "http://localhost:3000/expenseTracker/expense/getDailyBalance";
 
-    // Fetch income and expense data for the selected date
+    // Premium subscription button click
+    const handlePremiumSubscriptionClick = async () => {
+      const token = sessionStorage.getItem("token");
+        try{
+          const response = await axios.post("http://localhost:3000/expenseTracker/payment/createPaymentOrder",{},{
+            headers:{Authorization:`${token}`}
+          })
+          
+            const cashfree = await load({
+                      mode: "sandbox"
+                });
+            let checkoutOptions = {
+    paymentSessionId: response.data.paymentSessionId,
+    redirectTarget: "_modal"
+};
+
+      const result = await cashfree.checkout(checkoutOptions);
+
+console.log("After checkout");
+console.log("Checkout result:", result);
+      const verificationResponse = await axios.post("http://localhost:3000/expenseTracker/payment/verifyPayment",{
+        order_id:response.data.orderId
+      },{
+            headers:{Authorization:`${token}`}
+          })
+          console.log(verificationResponse);
+        }catch(err){
+          console.log(err);
+        }
+    };
+
+    // Fetch transactions for the selected date
     const getExpenses = async () => {
         try {
             setLoading(true);
             setError('');
 
-            const response = await axios.post(GET_EXPENSES_API, {
-                date: formData.date
-            },{headers:{Authorization:sessionStorage.getItem("token")}});
+            const token = sessionStorage.getItem("token");
+
+            const response = await axios.post(
+                GET_EXPENSES_API,
+                {
+                    date: selectedDate
+                },
+                {
+                    headers: {
+                        Authorization: `${token}`
+                    }
+                }
+            );
 
             setTransactions({
                 incomeData: response.data.incomeData || [],
@@ -61,9 +109,31 @@ function Home() {
         }
     };
 
+    // Fetch whenever the selected date changes
     useEffect(() => {
         getExpenses();
-    }, []);
+    }, [selectedDate]);
+
+    // Handle date picker changes
+    const handleDateChange = (e) => {
+        setSelectedDate(e.target.value);
+    };
+
+    // Navigate between dates
+    const changeDate = (days) => {
+        const [year, month, day] = selectedDate.split('-').map(Number);
+
+        const date = new Date(year, month - 1, day);
+        date.setDate(date.getDate() + days);
+
+        const updatedDate = [
+            date.getFullYear(),
+            String(date.getMonth() + 1).padStart(2, '0'),
+            String(date.getDate()).padStart(2, '0')
+        ].join('-');
+
+        setSelectedDate(updatedDate);
+    };
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -72,6 +142,67 @@ function Home() {
             ...prev,
             [name]: value
         }));
+    };
+
+    // Open popup with existing income or expense details
+    const handleEdit = (item) => {
+        setEditingTransaction(item);
+
+        setFormData({
+            description: item.description,
+            transactionType:
+                Number(item.expenseAmount) > 0 ? 'credit' : 'debit',
+            amount: Math.abs(Number(item.expenseAmount)),
+            category: item.category,
+            id:item.id
+        });
+
+        setShowForm(true);
+    };
+
+    // Open delete confirmation popup
+    const handleDelete = (item) => {
+        setTransactionToDelete(item);
+        setShowDeleteConfirm(true);
+    };
+
+    // Delete transaction after confirmation
+    const confirmDelete = async () => {
+        if (!transactionToDelete) return;
+
+        const token = sessionStorage.getItem("token");
+
+        try {
+            await axios.delete(
+                `http://localhost:3000/expenseTracker/expense/deleteExpense/${transactionToDelete.id}`,
+                {
+                    headers: {
+                        Authorization: `${token}`
+                    }
+                }
+            );
+
+            setShowDeleteConfirm(false);
+            setTransactionToDelete(null);
+
+            getExpenses();
+
+        } catch (err) {
+            console.log(err);
+        }
+    };
+
+    // Reset and close popup
+    const closeForm = () => {
+        setShowForm(false);
+        setEditingTransaction(null);
+
+        setFormData({
+            description: '',
+            transactionType: 'debit',
+            amount: '',
+            category: 'Food'
+        });
     };
 
     // Add a new income or expense
@@ -83,7 +214,7 @@ function Home() {
         if (
             !formData.description.trim() ||
             !formData.amount ||
-            !formData.date
+            !selectedDate
         ) {
             alert("Please fill in all fields.");
             return;
@@ -94,7 +225,6 @@ function Home() {
             return;
         }
 
-        // Credit is positive; debit is negative
         const adjustedAmount =
             formData.transactionType === 'credit'
                 ? enteredAmount
@@ -104,23 +234,48 @@ function Home() {
             description: formData.description.trim(),
             expenseAmount: adjustedAmount,
             category: formData.category,
-            date: formData.date
+            date: selectedDate,
+            id:formData.id
         };
 
         try {
             setSubmitting(true);
 
-            await axios.post(ADD_EXPENSE_API, payload,{headers:{Authorization:sessionStorage.getItem("token")}});
+            const token = sessionStorage.getItem("token");
 
-            setFormData(prev => ({
-                ...prev,
+            if(editingTransaction){
+
+              await axios.post(
+                EDIT_EXPENSE_API,
+                payload,
+                {
+                    headers: {
+                        Authorization: `${token}`
+                    }
+                }
+            );
+
+            }else{
+              await axios.post(
+                ADD_EXPENSE_API,
+                payload,
+                {
+                    headers: {
+                        Authorization: `${token}`
+                    }
+                }
+            );
+            }
+
+            setShowForm(false);
+            setEditingTransaction(null);
+
+            setFormData({
                 description: '',
                 transactionType: 'debit',
                 amount: '',
                 category: 'Food'
-            }));
-
-            setShowForm(false);
+            });
 
             await getExpenses();
 
@@ -142,6 +297,7 @@ function Home() {
         });
     };
 
+    // Render income and expense transactions
     const renderTransactions = (data, isCredit) => {
         if (data.length === 0) {
             return (
@@ -155,19 +311,45 @@ function Home() {
             <div className="expense-list">
                 {data.map((item) => (
                     <div className="expense-item" key={item.id}>
+
                         <div className="expense-info">
                             <h3>{item.category}</h3>
                             <p>{item.description}</p>
                         </div>
 
-                        <span className={
-                            isCredit ? "credit-amount" : "debit-amount"
-                        }>
-                            {isCredit ? "+" : "-"}
-                            {formatAmount(
-                                Math.abs(Number(item.expenseAmount))
-                            )}
-                        </span>
+                        <div className="expense-actions">
+
+                            <span className={
+                                isCredit ? "credit-amount" : "debit-amount"
+                            }>
+                                {isCredit ? "+" : "-"}
+                                {formatAmount(
+                                    Math.abs(Number(item.expenseAmount))
+                                )}
+                            </span>
+
+                            <div className="transaction-buttons">
+
+                                <button
+                                    type="button"
+                                    className="edit-button"
+                                    onClick={() => handleEdit(item)}
+                                >
+                                    Edit
+                                </button>
+
+                                <button
+                                    type="button"
+                                    className="delete-button"
+                                    onClick={() => handleDelete(item)}
+                                >
+                                    Delete
+                                </button>
+
+                            </div>
+
+                        </div>
+
                     </div>
                 ))}
             </div>
@@ -183,15 +365,26 @@ function Home() {
                     <p>Keep track of your income and expenses.</p>
                 </div>
 
-                <button
-                    className="logout-button"
-                    onClick={() => {
-                        sessionStorage.removeItem("UserId");
-                        window.location.href = "/login";
-                    }}
-                >
-                    Logout
-                </button>
+                
+
+                <div className="header-actions">
+    <button
+        className="premium-button"
+        onClick={handlePremiumSubscriptionClick}
+    >
+        Premium Subscription
+    </button>
+
+    <button
+        className="logout-button"
+        onClick={() => {
+            sessionStorage.removeItem("token");
+            window.location.href = "/login";
+        }}
+    >
+        Logout
+    </button>
+</div>
             </header>
 
             <main className="home-content">
@@ -206,32 +399,59 @@ function Home() {
 
                     <button
                         className="add-button"
-                        onClick={() => setShowForm(true)}
+                        onClick={() => {
+                            setEditingTransaction(null);
+
+                            setFormData({
+                                description: '',
+                                transactionType: 'debit',
+                                amount: '',
+                                category: 'Food'
+                            });
+
+                            setShowForm(true);
+                        }}
                     >
                         + Add Expense
                     </button>
                 </div>
 
+                {/* Date navigation */}
                 <div className="date-filter">
+
                     <label htmlFor="transaction-date">
                         Select date
                     </label>
 
-                    <input
-                        id="transaction-date"
-                        type="date"
-                        name="date"
-                        value={formData.date}
-                        onChange={handleChange}
-                    />
+                    <div className="date-navigation">
 
-                    <button
-                        className="refresh-button"
-                        onClick={getExpenses}
-                        disabled={loading}
-                    >
-                        Refresh
-                    </button>
+                        <button
+                            type="button"
+                            className="date-nav-button"
+                            onClick={() => changeDate(-1)}
+                            aria-label="Previous date"
+                        >
+                            &#8249;
+                        </button>
+
+                        <input
+                            id="transaction-date"
+                            type="date"
+                            value={selectedDate}
+                            onChange={handleDateChange}
+                        />
+
+                        <button
+                            type="button"
+                            className="date-nav-button"
+                            onClick={() => changeDate(1)}
+                            aria-label="Next date"
+                        >
+                            &#8250;
+                        </button>
+
+                    </div>
+
                 </div>
 
                 {loading ? (
@@ -244,6 +464,7 @@ function Home() {
                     <>
                         <section className="transaction-section">
                             <h2>Income</h2>
+
                             {renderTransactions(
                                 transactions.incomeData,
                                 true
@@ -252,6 +473,7 @@ function Home() {
 
                         <section className="transaction-section">
                             <h2>Expenses</h2>
+
                             {renderTransactions(
                                 transactions.expenseData,
                                 false
@@ -262,30 +484,37 @@ function Home() {
 
             </main>
 
-            {/* Add transaction popup */}
+            {/* Add/Edit transaction popup */}
             {showForm && (
                 <div
                     className="modal-overlay"
-                    onClick={() => setShowForm(false)}
+                    onClick={closeForm}
                 >
                     <div
                         className="expense-form-card modal-content"
                         onClick={(e) => e.stopPropagation()}
                     >
+
                         <div className="modal-heading">
-                            <h2>Add a transaction</h2>
+                            <h2>
+                                {editingTransaction
+                                    ? "Edit transaction"
+                                    : "Add a transaction"}
+                            </h2>
 
                             <button
                                 type="button"
                                 className="close-modal-button"
-                                onClick={() => setShowForm(false)}
+                                onClick={closeForm}
                             >
                                 ×
                             </button>
                         </div>
 
                         <p className="section-description">
-                            Record your income or expenses.
+                            {editingTransaction
+                                ? "Update your transaction details."
+                                : "Record your income or expenses."}
                         </p>
 
                         <form onSubmit={handleSubmit}>
@@ -338,24 +567,79 @@ function Home() {
                                 <option value="Other">Other</option>
                             </select>
 
-                            <label>Date</label>
-                            <input
-                                type="date"
-                                name="date"
-                                value={formData.date}
-                                onChange={handleChange}
-                                required
-                            />
-
                             <button
                                 type="submit"
                                 className="add-button"
                                 disabled={submitting}
                             >
-                                {submitting ? "Adding..." : "Add Transaction"}
+                                {submitting
+                                    ? "Please wait..."
+                                    : editingTransaction
+                                        ? "Update Transaction"
+                                        : "Add Transaction"}
                             </button>
 
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Delete confirmation popup */}
+            {showDeleteConfirm && (
+                <div
+                    className="modal-overlay"
+                    onClick={() => {
+                        setShowDeleteConfirm(false);
+                        setTransactionToDelete(null);
+                    }}
+                >
+                    <div
+                        className="expense-form-card modal-content delete-confirm-modal"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+
+                        <div className="modal-heading">
+                            <h2>Confirm deletion</h2>
+
+                            <button
+                                type="button"
+                                className="close-modal-button"
+                                onClick={() => {
+                                    setShowDeleteConfirm(false);
+                                    setTransactionToDelete(null);
+                                }}
+                            >
+                                ×
+                            </button>
+                        </div>
+
+                        <p>
+                            Are you sure you want to delete this transaction?
+                        </p>
+
+                        <div className="confirmation-buttons">
+
+                            <button
+                                type="button"
+                                className="cancel-delete-button"
+                                onClick={() => {
+                                    setShowDeleteConfirm(false);
+                                    setTransactionToDelete(null);
+                                }}
+                            >
+                                Cancel
+                            </button>
+
+                            <button
+                                type="button"
+                                className="confirm-delete-button"
+                                onClick={confirmDelete}
+                            >
+                                Confirm
+                            </button>
+
+                        </div>
+
                     </div>
                 </div>
             )}

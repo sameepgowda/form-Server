@@ -1,10 +1,12 @@
 import { ExpenseData } from "../../Database/index.js";
 import {sequelize} from "../../Database/db.js";
-import { Op, literal , fn, col, QueryTypes } from "sequelize";
+import { Op, literal , fn, col, QueryTypes, Model } from "sequelize";
+
 
 const addExpense = async (req,res, next)=>{
-        let {UserId, date, category, expenseAmount, description} = req.body;
+        let {date, category, expenseAmount, description} = req.body;
         console.log(req.body);
+        let UserId = req.UserId;
         expenseAmount=Number(expenseAmount);
         if(UserId && date && expenseAmount && category){
             try{
@@ -16,7 +18,34 @@ const addExpense = async (req,res, next)=>{
                 res.status(201).json({message:"Expense added successfully",
                     expenseInfo:{
                         expenseId : expenseId.dataValues.id,
-                        UserId,
+                        date,
+                        category,
+                        expenseAmount,
+                        description
+                    }
+                })
+            }catch(err){
+                next(err);
+            }
+        }else{
+            return res.status(400).json({message:"Bad request"});
+        }
+
+}
+
+const editExpense = async (req,res, next)=>{
+        let {id, date, category, expenseAmount, description} = req.body;
+        console.log(req.body);
+        let UserId = req.UserId;
+        expenseAmount=Number(expenseAmount);
+        if(UserId && date && expenseAmount && category){
+            try{
+                const expenseId = await ExpenseData.update({category, expenseAmount, description},{where:{id,UserId}});
+
+                
+                res.status(201).json({message:"Expense updated successfully", 
+                    expenseInfo:{
+                        id,
                         date,
                         category,
                         expenseAmount,
@@ -33,9 +62,10 @@ const addExpense = async (req,res, next)=>{
 }
 
 const getDailyBalance = async (req,res)=>{
-    if(req.body.UserId && req.body.date){
+    if(req.UserId && req.body.date){
         try{
-            const {UserId,date} = req.body;
+            const date = req.body.date;
+            const UserId = req.UserId;
 
         const incomeExpenseData = await ExpenseData.findAll({where:{
             UserId:UserId,date:date,
@@ -43,17 +73,21 @@ const getDailyBalance = async (req,res)=>{
 
         const incomeData = incomeExpenseData.filter((obj)=>obj.expenseAmount>0);
         const expenseData = incomeExpenseData.filter((obj)=>obj.expenseAmount<0);
+        const modifiedIncomeData = incomeData.map(({UserId,...rest})=>rest);
+        const modifiedExpenseData = expenseData.map(({UserId,...rest})=>rest);
         let totalIncome = incomeData.length>0?incomeData.reduce((accum,obj)=>accum+Number(obj.expenseAmount),0):0;
         let totalExpense = expenseData.length>0?expenseData.reduce((accum,obj)=>accum+Number(obj.expenseAmount),0):0;
 
         const closingBalanceData = await ExpenseData.findAll({attributes:[
             [fn("SUM", col("expenseAmount")),"closingBalance"]
         ], where:{UserId,date:{[Op.lte]:date}},group:["UserId"],raw:true});
+
+
         
         const closingBalance = closingBalanceData[0]?.closingBalance ?? 0;
         
              res.status(200).json({closingBalance,totalIncome,totalExpense,
-                incomeData,expenseData
+                incomeData:modifiedIncomeData,expenseData:modifiedExpenseData
             })
         
         }catch(err){
@@ -67,28 +101,16 @@ const getDailyBalance = async (req,res)=>{
 }
 
 const deleteExpense = async (req,res)=>{
-    if(req.body.id && req.body.UserId && req.body.expenseAmount && req.body.date){
-        let {id, UserId, expenseAmount, date, category} = req.body;
-        expenseAmount = Number(expenseAmount);
-        const t3 = await sequelize.transaction();
+    if(req.params.id){
+        let id = req.params.id;
         try{
-            const deleteData = await ExpenseData.destroy({where:{id,UserId},
-            transaction:t3});
-            console.log("deleteData",deleteData);
-            if(deleteData>0){
-            await DailyBalance.update({closingBalance:literal(`closingBalance -${expenseAmount}`)},
-        {where:{
-            UserId,date:{[Op.gte]:date}}
-        , transaction:t3});
-            }
-
-        await t3.commit();
+        await ExpenseData.destroy({where:{id}});
+                  
         res.status(200).json({message:"Expense successfully deleted",
-            expenseInfo:{UserId,expenseId:id,category}
+            expenseInfo:{expenseId:id}
         })
 
         }catch(err){
-            await t3.rollback();
             console.log(err);
             res.status(500).json({error:err.message});
         }
@@ -324,4 +346,4 @@ res.status(200).json({monthlyReport:responseArr})
 
 }
 
-export default {addExpense,getDailyBalance, getMonthlyReport, deleteExpense, bulkDeleteExpense, getYearlyReport};
+export default {addExpense,getDailyBalance,editExpense, getMonthlyReport, deleteExpense, bulkDeleteExpense, getYearlyReport};

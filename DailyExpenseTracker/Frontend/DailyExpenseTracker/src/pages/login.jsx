@@ -29,7 +29,7 @@ function Login() {
         console.log(response);
         if(response.status==200){
             window.alert("Login Successful");
-            sessionStorage.setItem("UserId",response.data.UserId);
+            sessionStorage.setItem("token",response.data.token);
             navigate("/home");
         }
     }catch(err){

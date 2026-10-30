@@ -1,4 +1,4 @@
-import { ExpenseData, DailyBalance } from "../../Database/index.js";
+import { ExpenseData } from "../../Database/index.js";
 import {sequelize} from "../../Database/db.js";
 import { Op, literal , fn, col, QueryTypes } from "sequelize";
 
@@ -7,53 +7,12 @@ const addExpense = async (req,res, next)=>{
         console.log(req.body);
         expenseAmount=Number(expenseAmount);
         if(UserId && date && expenseAmount && category){
-            const transaction = await sequelize.transaction();
             try{
-                const expenseId = await ExpenseData.create({UserId, date, category, expenseAmount, description},
-                    {transaction}
+                const expenseId = await ExpenseData.create({UserId, date, category, expenseAmount, description}
+                    
                 );
 
-                const todaysBalanceData = await DailyBalance.findOne({where:{
-                    UserId:UserId,date:date
-                }, transaction});
-                if(!todaysBalanceData){
-                const prevBalanceData = await DailyBalance.findAll({where:{UserId:UserId,date:{
-                        [Op.lt]:date
-                    }},order:[["date","desc"]],raw:true,transaction})
-                    console.log(prevBalanceData);
-                if(prevBalanceData.length>0){
-                       const balance =  Number(prevBalanceData[0].closingBalance)+expenseAmount;
-                await DailyBalance.create({UserId,date,closingBalance:balance}, {transaction})
-                    }else{
-                        await DailyBalance.create({UserId,date,closingBalance:expenseAmount},{transaction})
-                    }
-                        
-                }else{
-                    await DailyBalance.update({closingBalance:literal(`closingBalance + ${expenseAmount}`)},
-                {transaction,
-                    where:{
-                    UserId:UserId,
-                    date:date
-                }})
-                }
-            
-
-               const balanceData = await DailyBalance.findAll({where:{date:{[Op.gt]:date},UserId:UserId}, raw:true,transaction});
-
-                if(balanceData.length>0){
-                    await DailyBalance.update(
-                        {closingBalance:literal(`closingBalance + ${expenseAmount}`)},
-                        {transaction,
-                            where:{
-                            UserId:UserId,
-                            date:{
-                                [Op.gt]:date
-                            }
-                        }}
-                    )
-                }
-
-                await transaction.commit();
+                
                 res.status(201).json({message:"Expense added successfully",
                     expenseInfo:{
                         expenseId : expenseId.dataValues.id,
@@ -65,7 +24,6 @@ const addExpense = async (req,res, next)=>{
                     }
                 })
             }catch(err){
-                await transaction.rollback();
                 next(err);
             }
         }else{
@@ -78,48 +36,26 @@ const getDailyBalance = async (req,res)=>{
     if(req.body.UserId && req.body.date){
         try{
             const {UserId,date} = req.body;
-            let openingBalance = 0;
-            let totalIncome = 0;
-            let totalExpense = 0;
-        const [openingBalanceData] = await DailyBalance.findAll({where:{
-            UserId:UserId,date:{[Op.lt]:date}
-        },order:[["date","desc"]],raw:true});
-        console.log(openingBalanceData);
 
-        if(openingBalanceData){
-            openingBalance = openingBalanceData.closingBalance;
-        };
-
-        const balanceData = await DailyBalance.findOne({where:{UserId:UserId,date:date}});
-        if(balanceData){
-
-        const incomeData = await ExpenseData.findAll({where:{
-            UserId:UserId,date:date,expenseAmount:{[Op.gt]:0}
+        const incomeExpenseData = await ExpenseData.findAll({where:{
+            UserId:UserId,date:date,
         },raw:true});
-        if(incomeData.length>0){
-            totalIncome = incomeData.reduce((accum,obj)=>{
-                return accum + Number(obj.expenseAmount)
-            },0);
-        }
+
+        const incomeData = incomeExpenseData.filter((obj)=>obj.expenseAmount>0);
+        const expenseData = incomeExpenseData.filter((obj)=>obj.expenseAmount<0);
+        let totalIncome = incomeData.length>0?incomeData.reduce((accum,obj)=>accum+Number(obj.expenseAmount),0):0;
+        let totalExpense = expenseData.length>0?expenseData.reduce((accum,obj)=>accum+Number(obj.expenseAmount),0):0;
+
+        const closingBalanceData = await ExpenseData.findAll({attributes:[
+            [fn("SUM", col("expenseAmount")),"closingBalance"]
+        ], where:{UserId,date:{[Op.lte]:date}},group:["UserId"],raw:true});
         
-        const expenseData = await ExpenseData.findAll({where:{UserId:UserId,date:date,expenseAmount:{
-            [Op.lt]:0
-        }},raw:true});
-
-        if(expenseData.length>0){
-            totalExpense = expenseData.reduce((accum,obj)=>{
-                return accum + Number(obj.expenseAmount)
-            },0);
-        }
-
-        res.status(200).json({openingBalance,closingBalance:balanceData.closingBalance,totalIncome,
-            totalExpense, incomeData,expenseData
+        const closingBalance = closingBalanceData[0]?.closingBalance ?? 0;
+        
+             res.status(200).json({closingBalance,totalIncome,totalExpense,
+                incomeData,expenseData
             })
-        }else{
-             res.status(200).json({openingBalance,closingBalance:openingBalance,totalIncome,totalExpense,
-                incomeData:null,expenseData:null
-            })
-        }
+        
         }catch(err){
             res.status(500).json({error:err.message});
             console.log(err);

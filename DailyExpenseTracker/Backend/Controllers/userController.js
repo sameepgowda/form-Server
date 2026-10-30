@@ -1,5 +1,8 @@
 import {User} from "../../Database/index.js";
 import bcrypt from "bcrypt";
+import jwt from 'jsonwebtoken';
+
+const JWTkey = "JPHJ9qZNUADGiQxVCyOrQmeRf9vmdmGJ4rHoU5rktgO";
 
 
 const createUser = async (req,res)=>{
@@ -40,7 +43,8 @@ const userLogin = async (req,res)=>{
         }else{
             const passwordsMatch = await bcrypt.compare(password,userInfo.password);
             if(passwordsMatch){
-                return res.status(200).json({message:"Login successful",success:true,UserId:userInfo.id})
+                const token = jwt.sign({UserId:userInfo.id},JWTkey,{expiresIn:"1h"})
+                return res.status(200).json({message:"Login successful",success:true,token:token})
             }else{
                 return res.status(401).json({message:"User not authorized",success:false})
             }

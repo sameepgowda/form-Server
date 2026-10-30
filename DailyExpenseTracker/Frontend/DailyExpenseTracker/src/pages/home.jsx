@@ -45,9 +45,8 @@ function Home() {
             setError('');
 
             const response = await axios.post(GET_EXPENSES_API, {
-                UserId: userId,
                 date: formData.date
-            });
+            },{headers:{Authorization:sessionStorage.getItem("token")}});
 
             setTransactions({
                 incomeData: response.data.incomeData || [],
@@ -64,7 +63,7 @@ function Home() {
 
     useEffect(() => {
         getExpenses();
-    }, [userId, formData.date]);
+    }, []);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -102,7 +101,6 @@ function Home() {
                 : -enteredAmount;
 
         const payload = {
-            UserId: userId,
             description: formData.description.trim(),
             expenseAmount: adjustedAmount,
             category: formData.category,
@@ -112,7 +110,7 @@ function Home() {
         try {
             setSubmitting(true);
 
-            await axios.post(ADD_EXPENSE_API, payload);
+            await axios.post(ADD_EXPENSE_API, payload,{headers:{Authorization:sessionStorage.getItem("token")}});
 
             setFormData(prev => ({
                 ...prev,

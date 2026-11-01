@@ -38,10 +38,11 @@ const verifyPayment = async (req,res)=>{
     try{
         const orderInfo = await cashFreeService.cashfree.PGFetchOrder(req.body.order_id);
         // console.log("Payment verification Info", orderInfo);
-        if(orderInfo.status==200){
+        console.log("orderInfo",orderInfo);
+        if(orderInfo.data.order_status=="PAID"){
              res.status(200).json({message:"payment successful"});
         }else{
-            res.staus(500).json({message:"payment failed"});
+            res.status(500).json({message:"payment failed"});
         }
        
     }catch(err){

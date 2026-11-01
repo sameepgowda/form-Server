@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { load } from "@cashfreepayments/cashfree-js";
@@ -36,6 +35,8 @@ function Home() {
 
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [transactionToDelete, setTransactionToDelete] = useState(null);
+    const [paymentPopup, setPaymentPopup] = useState(null);
+    const [showPremiumPopup, setShowPremiumPopup] = useState(false);
 
     const ADD_EXPENSE_API =
         "http://localhost:3000/expenseTracker/expense/addExpense";
@@ -47,33 +48,56 @@ function Home() {
 
     // Premium subscription button click
     const handlePremiumSubscriptionClick = async () => {
-      const token = sessionStorage.getItem("token");
-        try{
-          const response = await axios.post("http://localhost:3000/expenseTracker/payment/createPaymentOrder",{},{
-            headers:{Authorization:`${token}`}
-          })
-          
-            const cashfree = await load({
-                      mode: "sandbox"
-                });
-            let checkoutOptions = {
-    paymentSessionId: response.data.paymentSessionId,
-    redirectTarget: "_modal"
-};
+        const token = sessionStorage.getItem("token");
+        setPaymentPopup(null);
 
-      const result = await cashfree.checkout(checkoutOptions);
+        try {
+            const response = await axios.post(
+                "http://localhost:3000/expenseTracker/payment/createPaymentOrder",
+                {},
+                {
+                    headers: { Authorization: `${token}` }
+                }
+            );
 
-console.log("After checkout");
-console.log("Checkout result:", result);
-      const verificationResponse = await axios.post("http://localhost:3000/expenseTracker/payment/verifyPayment",{
-        order_id:response.data.orderId
-      },{
-            headers:{Authorization:`${token}`}
-          })
-          console.log(verificationResponse);
-        }catch(err){
-          console.log(err);
+            const cashfree = await load({ mode: "sandbox" });
+
+            const checkoutOptions = {
+                paymentSessionId: response.data.paymentSessionId,
+                redirectTarget: document.getElementById("cf_checkout"),
+                appearance: {
+                    width: "425px",
+                    height: "700px"
+                }
+            };
+
+            // Wait for checkout to finish, then ask the backend to verify payment.
+            await cashfree.checkout(checkoutOptions);
+
+            const verificationResponse = await axios.post(
+                "http://localhost:3000/expenseTracker/payment/verifyPayment",
+                {
+                    order_id: response.data.orderId
+                },
+                {
+                    headers: { Authorization: `${token}` }
+                }
+            );
+
+            // The verification endpoint should return success only when
+            // Cashfree confirms that the order status is PAID.
+            setPaymentPopup("success");
+
+        } catch (err) {
+            console.log("Payment/verification error:", err);
+            setPaymentPopup("failure");
         }
+    };
+
+    // Close the premium popup immediately, then start the payment flow
+    const handleBecomePremiumClick = () => {
+        setShowPremiumPopup(false);
+        handlePremiumSubscriptionClick();
     };
 
     // Fetch transactions for the selected date
@@ -362,6 +386,7 @@ console.log("Checkout result:", result);
             <header className="home-header">
                 <div>
                     <h1>Expense Tracker</h1>
+                    <div id="cf_checkout"></div>
                     <p>Keep track of your income and expenses.</p>
                 </div>
 
@@ -370,7 +395,7 @@ console.log("Checkout result:", result);
                 <div className="header-actions">
     <button
         className="premium-button"
-        onClick={handlePremiumSubscriptionClick}
+        onClick={() => setShowPremiumPopup(true)}
     >
         Premium Subscription
     </button>
@@ -640,6 +665,88 @@ console.log("Checkout result:", result);
 
                         </div>
 
+                    </div>
+                </div>
+            )}
+
+            {/* Premium subscription price popup */}
+            {showPremiumPopup && (
+                <div
+                    className="modal-overlay"
+                    onClick={() => setShowPremiumPopup(false)}
+                >
+                    <div
+                        className="expense-form-card modal-content premium-popup-modal"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+
+                        <div className="modal-heading">
+                            <h2>Premium Subscription</h2>
+
+                            <button
+                                type="button"
+                                className="close-modal-button"
+                                onClick={() => setShowPremiumPopup(false)}
+                            >
+                                ×
+                            </button>
+                        </div>
+
+                        <p className="section-description">
+                            Unlock premium features with a one-time payment.
+                        </p>
+
+                        <div className="premium-price-box">
+                            <span className="premium-price-label">
+                                Subscription amount
+                            </span>
+                            <span className="premium-price-amount">
+                                {formatAmount(1)}
+                            </span>
+                        </div>
+
+                        <button
+                            type="button"
+                            className="premium-confirm-button"
+                            onClick={handleBecomePremiumClick}
+                        >
+                            Become a premium member
+                        </button>
+
+                    </div>
+                </div>
+            )}
+
+            {/* Premium payment result popup */}
+            {paymentPopup && (
+                <div
+                    className="payment-result-overlay"
+                    onClick={() => setPaymentPopup(null)}
+                >
+                    <div
+                        className="payment-result-modal"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-live="polite"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className={`payment-result-icon ${paymentPopup}`}>
+                            {paymentPopup === "success" ? "✓" : "×"}
+                        </div>
+
+                        <h2>
+                            {paymentPopup === "success"
+                                ? "Congrats, you're a premium member now!"
+                                : "Sorry. Your payment didn't go through."}
+                        </h2>
+
+                        <button
+                            type="button"
+                            className="payment-result-close-button"
+                            onClick={() => setPaymentPopup(null)}
+                        >
+                            Close
+                        </button>
                     </div>
                 </div>
             )}

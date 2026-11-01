@@ -32,36 +32,11 @@ const ExpenseData = sequelize.define("ExpenseData",{
 },
 {tableName:"ExpenseData"})
 
-const DailyBalance = sequelize.define("DailyBalance",{
-    UserId:{
-        type:DataTypes.INTEGER,
-        allowNull:false,
-        references:{
-            model:User,
-            key:"id"
-        }
-    },
-    date:{
-        type:DataTypes.DATEONLY,
-        allowNull:false
-    },
-    closingBalance:{
-        type:DataTypes.DECIMAL(12,2),
-        allowNull:false,
-        defaultValue:0
-    }
-},
-{
-    indexes:[
-        {unique:true,fields:["date","UserId"]}
-    ],
-    tableName:"DailyBalance"
-}
-)
 
 
 
-export {ExpenseData,DailyBalance};
+
+export {ExpenseData};
 
 
 

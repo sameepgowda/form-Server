@@ -7,6 +7,8 @@ import {sequelize} from "../../Database/db.js";
 // import cors from "cors";
 import errorHandler from "../Controllers/errorHandler.js";
 
+
+
 await sequelize.authenticate();
 
 await sequelize.sync();
@@ -31,4 +33,14 @@ app.use((req,res,next)=>{
 });
 
 app.listen(3000);
+
+
+
+
+
+
+
+
+
+
 

@@ -9,6 +9,6 @@ router.post("/createUser", userController.createUser);
 
 router.post("/login", userController.userLogin);
 
-router.get("/leaderBoardData", authMiddleware, userController.getLeaderBoardData);
+router.get("/getLeaderBoardData", authMiddleware, userController.getLeaderBoardData);
 
 export default router;

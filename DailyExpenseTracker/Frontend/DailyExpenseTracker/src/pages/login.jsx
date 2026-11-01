@@ -73,7 +73,7 @@ function Login() {
         <p>Don't have an account?</p>
         <button
           type="button"
-          onClick={() => navigate('/signup')}
+          onClick={() => navigate('/')}
         >
           Sign Up
         </button>

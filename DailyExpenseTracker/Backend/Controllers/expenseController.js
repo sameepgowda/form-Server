@@ -2,6 +2,7 @@ import { ExpenseData } from "../../Database/index.js";
 import {sequelize} from "../../Database/db.js";
 import { Op, literal , fn, col, QueryTypes, Model } from "sequelize";
 import {User} from "../../Database/index.js";
+import geminiAiService from "../Services/geminiAiService.js";
 
 
 const addExpense = async (req,res, next)=>{
@@ -10,7 +11,7 @@ const addExpense = async (req,res, next)=>{
         let UserId = req.UserId;
         expenseAmount=Number(expenseAmount);
         if(UserId && date && expenseAmount && category){
-            const t1 = sequelize.transaction();
+            const t1 = await sequelize.transaction();
             try{
                 const expenseId = await ExpenseData.create({UserId, date, category, expenseAmount, description},
                     {transaction:t1}
@@ -32,7 +33,7 @@ const addExpense = async (req,res, next)=>{
                     }
                 })
             }catch(err){
-                await await t1.rollback();
+                await t1.rollback();
                 next(err);
             }
         }else{
@@ -351,7 +352,31 @@ res.status(200).json({monthlyReport:responseArr})
  res.status(400).json({message:'Bad Request'});
  }
 
-
 }
 
-export default {addExpense,getDailyBalance,editExpense, getMonthlyReport, deleteExpense, bulkDeleteExpense, getYearlyReport};
+const generateCategoryUsingAI = async (req,res)=>{
+    let {description} = req.body;
+        console.log(req.body);
+        let UserId = req.UserId;
+        if(UserId && description){
+            
+            try{
+            const response = await geminiAiService.ai.models.generateContent({
+            model: "gemini-3.6-flash",
+            contents: `Generate an appropriate one word category to be entered in an 
+            expense tracker for the following expense/credit description.If
+             a category is present in the avaialable categories, just use that otherwise generate a new category.
+             Available categories:{Food,Bills,Salary,Travel,Shopping,Entertainment}, Description:${description}`
+        });
+
+            res.status(200).json({category:response.text});
+            }catch(err){
+            
+                next(err);
+            }
+        }else{
+            return res.status(400).json({message:"Bad request"});
+        }
+}
+
+export default {generateCategoryUsingAI, addExpense,getDailyBalance,editExpense, getMonthlyReport, deleteExpense, bulkDeleteExpense, getYearlyReport};

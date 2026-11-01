@@ -37,6 +37,19 @@ function Home() {
     const [transactionToDelete, setTransactionToDelete] = useState(null);
     const [paymentPopup, setPaymentPopup] = useState(null);
     const [showPremiumPopup, setShowPremiumPopup] = useState(false);
+    const [leaderboardPopup, setLeaderboardPopup] = useState(null);
+    const [leaderboardData, setLeaderboardData] = useState([]);
+    const [categories, setCategories] = useState([
+        'Food',
+        'Shopping',
+        'Entertainment',
+        'Travel',
+        'Salary',
+        'Bills',
+        'Health',
+        'Other'
+    ]);
+    const [suggestingCategory, setSuggestingCategory] = useState(false);
 
     // Read premium status from sessionStorage before the page renders
     const isPremium = sessionStorage.getItem("isPremium") === "true";
@@ -98,7 +111,22 @@ function Home() {
     };
 
     // Show leaderboard (to be implemented)
-    const showLeaderboard = () => {
+    const showLeaderboard = async () => {
+        const token = sessionStorage.getItem("token");
+         try {
+            const response = await axios.get(
+                "http://localhost:3000/expenseTracker/user/getLeaderBoardData",
+                {
+                    headers: { Authorization: `${token}` }
+                }
+            );
+
+            setLeaderboardData(response.data.leaderBoardList || []);
+            setLeaderboardPopup("success");
+        }catch(err){
+            console.log(err);
+            setLeaderboardPopup("failure");
+        }
 
     };
 
@@ -107,6 +135,55 @@ function Home() {
         setShowPremiumPopup(false);
         handlePremiumSubscriptionClick();
     };
+
+    const suggestCategory = async () =>{
+        if (!formData.description.trim()) {
+            alert("Please enter a description first.");
+            return;
+        }
+
+        try{
+            setSuggestingCategory(true);
+
+             const token = sessionStorage.getItem("token");
+        const payload = {description:formData.description};
+        const response = await axios.post("http://localhost:3000/expenseTracker/expense/generateCategoryUsingAI",
+           payload , {
+                    headers: { Authorization: `${token}` }
+                }
+        );
+        const suggestedCategory = String(response.data.category || '').trim();
+
+            if (suggestedCategory) {
+                // Reuse the existing category if it is already in the list
+                const existingCategory = categories.find(
+                    (category) =>
+                        category.toLowerCase() === suggestedCategory.toLowerCase()
+                );
+
+                if (existingCategory) {
+                    setFormData(prev => ({
+                        ...prev,
+                        category: existingCategory
+                    }));
+                } else {
+                    // Otherwise add the new category to the list and select it
+                    setCategories(prev => [...prev, suggestedCategory]);
+
+                    setFormData(prev => ({
+                        ...prev,
+                        category: suggestedCategory
+                    }));
+                }
+            }
+        }catch(err){
+            console.log(err);
+            alert("Unable to suggest a category. Please try again.");
+        }finally{
+            setSuggestingCategory(false);
+        }
+       
+    }
 
     // Fetch transactions for the selected date
     const getExpenses = async () => {
@@ -188,6 +265,11 @@ function Home() {
             category: item.category,
             id:item.id
         });
+
+        // Make sure a previously saved custom category is available in the dropdown
+        setCategories(prev =>
+            prev.includes(item.category) ? prev : [...prev, item.category]
+        );
 
         setShowForm(true);
     };
@@ -575,6 +657,41 @@ function Home() {
                                 required
                             />
 
+                            <label>Category</label>
+                            <div className={`category-field${suggestingCategory ? ' loading' : ''}`}>
+                                <select
+                                    name="category"
+                                    value={formData.category}
+                                    onChange={handleChange}
+                                    disabled={suggestingCategory}
+                                >
+                                    {categories.map((category) => (
+                                        <option key={category} value={category}>
+                                            {category}
+                                        </option>
+                                    ))}
+                                </select>
+
+                                <button
+                                    type="button"
+                                    className="suggest-category-button"
+                                    onClick={suggestCategory}
+                                    disabled={suggestingCategory}
+                                >
+                                    {suggestingCategory ? (
+                                        <>
+                                            <span className="suggest-spinner"></span>
+                                            Suggesting...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <span className="suggest-icon">✦</span>
+                                            Suggest category
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+
                             <label>Transaction type</label>
                             <select
                                 name="transactionType"
@@ -596,22 +713,6 @@ function Home() {
                                 onChange={handleChange}
                                 required
                             />
-
-                            <label>Category</label>
-                            <select
-                                name="category"
-                                value={formData.category}
-                                onChange={handleChange}
-                            >
-                                <option value="Food">Food</option>
-                                <option value="Shopping">Shopping</option>
-                                <option value="Entertainment">Entertainment</option>
-                                <option value="Travel">Travel</option>
-                                <option value="Salary">Salary</option>
-                                <option value="Bills">Bills</option>
-                                <option value="Health">Health</option>
-                                <option value="Other">Other</option>
-                            </select>
 
                             <button
                                 type="submit"
@@ -733,6 +834,104 @@ function Home() {
                         >
                             Become a premium member
                         </button>
+
+                    </div>
+                </div>
+            )}
+
+            {/* Leaderboard popup */}
+            {leaderboardPopup === "success" && (
+                <div
+                    className="modal-overlay"
+                    onClick={() => setLeaderboardPopup(null)}
+                >
+                    <div
+                        className="expense-form-card modal-content leaderboard-modal"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+
+                        <div className="modal-heading">
+                            <h2>Leaderboard</h2>
+
+                            <button
+                                type="button"
+                                className="close-modal-button"
+                                onClick={() => setLeaderboardPopup(null)}
+                            >
+                                ×
+                            </button>
+                        </div>
+
+                        <p className="section-description">
+                            See how users rank by total expense.
+                        </p>
+
+                        {leaderboardData.length === 0 ? (
+                            <p className="empty-message">
+                                No users on the leaderboard yet.
+                            </p>
+                        ) : (
+                            <div className="leaderboard-table-wrapper">
+                                <table className="leaderboard-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Rank</th>
+                                            <th>Name</th>
+                                            <th>Total Expense</th>
+                                        </tr>
+                                    </thead>
+
+                                    <tbody>
+                                        {leaderboardData.map((user, index) => (
+                                            <tr key={user.id}>
+                                                <td>
+                                                    <span className={`rank-badge rank-${index + 1}`}>
+                                                        {index + 1}
+                                                    </span>
+                                                </td>
+                                                <td className="leaderboard-name">
+                                                    {user.username}
+                                                </td>
+                                                <td className="leaderboard-amount">
+                                                    {formatAmount(user.totalExpense)}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+
+                    </div>
+                </div>
+            )}
+
+            {/* Leaderboard failure popup */}
+            {leaderboardPopup === "failure" && (
+                <div
+                    className="modal-overlay"
+                    onClick={() => setLeaderboardPopup(null)}
+                >
+                    <div
+                        className="expense-form-card modal-content leaderboard-error-modal"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+
+                        <div className="modal-heading">
+                            <h2>Leaderboard</h2>
+
+                            <button
+                                type="button"
+                                className="close-modal-button"
+                                onClick={() => setLeaderboardPopup(null)}
+                            >
+                                ×
+                            </button>
+                        </div>
+
+                        <p className="error-message">
+                            Failed to load the leaderboard
+                        </p>
 
                     </div>
                 </div>

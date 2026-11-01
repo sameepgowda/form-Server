@@ -1244,5 +1244,236 @@ body:has(#cf_checkout:not(:empty))::before {
     }
 }
 
+/* Leaderboard popup */
+
+.leaderboard-modal {
+    max-width: 580px;
+}
+
+.leaderboard-error-modal {
+    max-width: 420px;
+}
+
+.leaderboard-error-modal .error-message {
+    margin-bottom: 0;
+    text-align: center;
+    font-weight: 600;
+}
+
+.leaderboard-table-wrapper {
+    max-height: 55vh;
+    overflow-y: auto;
+    border: 1px solid #e9eaf3;
+    border-radius: 14px;
+    background: white;
+    box-shadow: 0 4px 16px rgba(40, 43, 80, 0.045);
+}
+
+.leaderboard-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.leaderboard-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    padding: 14px 18px;
+    background: linear-gradient(120deg, #171b3b, #29245c, #44358a);
+    color: #e4e2ff;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    text-align: left;
+    text-transform: uppercase;
+}
+
+.leaderboard-table thead th:first-child {
+    width: 90px;
+    text-align: center;
+}
+
+.leaderboard-table thead th:last-child {
+    text-align: right;
+}
+
+.leaderboard-table tbody td {
+    padding: 15px 18px;
+    border-bottom: 1px solid #f0f0f6;
+    font-size: 15px;
+    color: #333650;
+    transition: background 0.2s ease;
+}
+
+.leaderboard-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.leaderboard-table tbody tr:hover td {
+    background: #f8f7ff;
+}
+
+.leaderboard-table tbody td:first-child {
+    text-align: center;
+}
+
+.leaderboard-name {
+    font-weight: 700;
+    color: #292c49;
+}
+
+.leaderboard-amount {
+    text-align: right;
+    font-weight: 750;
+    color: #e05265;
+    white-space: nowrap;
+}
+
+/* Rank badges */
+
+.rank-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: #eef0ff;
+    color: #5145cd;
+    font-size: 14px;
+    font-weight: 750;
+}
+
+.rank-badge.rank-1 {
+    background: linear-gradient(135deg, #f5b942, #e69b16);
+    color: #3a2800;
+    box-shadow: 0 4px 12px rgba(230, 155, 22, 0.35);
+}
+
+.rank-badge.rank-2 {
+    background: linear-gradient(135deg, #e3e6ee, #b5bbcb);
+    color: #2f3447;
+    box-shadow: 0 4px 12px rgba(143, 150, 172, 0.35);
+}
+
+.rank-badge.rank-3 {
+    background: linear-gradient(135deg, #e8b48a, #c4824f);
+    color: #3b2412;
+    box-shadow: 0 4px 12px rgba(196, 130, 79, 0.35);
+}
+
+@media (max-width: 480px) {
+    .leaderboard-table thead th,
+    .leaderboard-table tbody td {
+        padding: 12px 10px;
+        font-size: 13px;
+    }
+
+    .leaderboard-table thead th:first-child {
+        width: 60px;
+    }
+
+    .rank-badge {
+        width: 30px;
+        height: 30px;
+        font-size: 13px;
+    }
+}
+
+/* Category field with AI suggestion button */
+
+.category-field {
+    display: flex;
+    align-items: stretch;
+    gap: 10px;
+}
+
+.modal-content form .category-field select {
+    flex: 1;
+    width: auto;
+    min-width: 0;
+}
+
+.category-field.loading select {
+    opacity: 0.6;
+    cursor: wait;
+}
+
+.suggest-category-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    flex-shrink: 0;
+    padding: 0 16px;
+    min-height: 44px;
+    border: 1px solid #d9d0ff;
+    border-radius: 9px;
+    background: linear-gradient(120deg, #f4f1ff, #ebe6ff);
+    color: #5b45d6;
+    font-size: 13px;
+    font-weight: 650;
+    white-space: nowrap;
+    box-shadow: 0 3px 10px rgba(112, 87, 237, 0.12);
+}
+
+.suggest-category-button:hover:not(:disabled) {
+    background: linear-gradient(120deg, #7057ed, #9275ff);
+    border-color: transparent;
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 18px rgba(112, 87, 237, 0.3);
+}
+
+.suggest-category-button:disabled {
+    opacity: 0.9;
+    cursor: wait;
+}
+
+.suggest-icon {
+    display: inline-block;
+    font-size: 15px;
+    line-height: 1;
+    animation: suggestTwinkle 2.4s ease-in-out infinite;
+}
+
+.suggest-spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(112, 87, 237, 0.25);
+    border-top-color: #7057ed;
+    border-radius: 50%;
+    animation: suggestSpin 0.7s linear infinite;
+}
+
+@keyframes suggestSpin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes suggestTwinkle {
+    0%, 100% {
+        transform: scale(1) rotate(0deg);
+        opacity: 1;
+    }
+
+    50% {
+        transform: scale(1.25) rotate(20deg);
+        opacity: 0.75;
+    }
+}
+
+@media (max-width: 480px) {
+    .category-field {
+        flex-direction: column;
+    }
+
+    .suggest-category-button {
+        width: 100%;
+    }
+}
+
 
 

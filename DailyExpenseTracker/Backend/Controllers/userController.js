@@ -60,10 +60,30 @@ const userLogin = async (req,res)=>{
 }
 
 
+const getLeaderBoardData = async (req,res)=>{
+    if(req.UserId){
+        try{
+        const leaderBoardData = await User.findAll({order:[["totalExpense","desc"]], raw:true});
+        res.status(200).json({leaderBoardList:leaderBoardData});
+    }catch(err){
+        next(err);
+    }
+    }else{
+        res.status(400).json({message:"Bad request"});
+    }
+    
+}
 
-export default {createUser, userLogin};
+
+export default {createUser, userLogin, getLeaderBoardData};
 
 
 
 
 //401 is authentication and 403 is access
+
+
+// Method	What happens?
+// next()	Moves to the next regular middleware/handler
+// next(err)	Skips regular middleware and moves to error-handling middleware
+// next("route")	next("route") skips the rest of the current route, not every route in your application.

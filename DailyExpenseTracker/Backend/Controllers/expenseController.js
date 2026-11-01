@@ -1,6 +1,7 @@
 import { ExpenseData } from "../../Database/index.js";
 import {sequelize} from "../../Database/db.js";
 import { Op, literal , fn, col, QueryTypes, Model } from "sequelize";
+import {User} from "../../Database/index.js";
 
 
 const addExpense = async (req,res, next)=>{
@@ -9,12 +10,18 @@ const addExpense = async (req,res, next)=>{
         let UserId = req.UserId;
         expenseAmount=Number(expenseAmount);
         if(UserId && date && expenseAmount && category){
+            const t1 = sequelize.transaction();
             try{
-                const expenseId = await ExpenseData.create({UserId, date, category, expenseAmount, description}
+                const expenseId = await ExpenseData.create({UserId, date, category, expenseAmount, description},
+                    {transaction:t1}
                     
                 );
+                if(expenseAmount<0){
+                    const updatedExpenseAmount = -(expenseAmount);
+                    await User.update({totalExpense:literal(`totalExpense + ${updatedExpenseAmount}`)},{where:{id:UserId},transaction:t1});
+                }
 
-                
+                await t1.commit();
                 res.status(201).json({message:"Expense added successfully",
                     expenseInfo:{
                         expenseId : expenseId.dataValues.id,
@@ -25,6 +32,7 @@ const addExpense = async (req,res, next)=>{
                     }
                 })
             }catch(err){
+                await await t1.rollback();
                 next(err);
             }
         }else{

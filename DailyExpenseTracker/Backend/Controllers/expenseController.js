@@ -110,16 +110,30 @@ const getDailyBalance = async (req,res)=>{
 }
 
 const deleteExpense = async (req,res)=>{
-    if(req.params.id){
+    if(req.params.id && req.UserId){
         let id = req.params.id;
+        const t2 = await sequelize.transaction();
         try{
-        await ExpenseData.destroy({where:{id}});
+        const expenseInfo = await ExpenseData.findAll({where:{id}, raw:true});
+        if(expenseInfo.length>0 && expenseInfo[0].expenseAmount<0){
+            const modifiedExpenseAmount = -(expenseInfo[0].expenseAmount);
+            await User.decrement('totalExpense', {
+    by: Number(modifiedExpenseAmount),
+    where: { id: req.UserId },
+    transaction: t2
+});
+
+        }
+
+        await ExpenseData.destroy({where:{id}, transaction:t2});
+        await t2.commit();
                   
         res.status(200).json({message:"Expense successfully deleted",
             expenseInfo:{expenseId:id}
         })
 
         }catch(err){
+            await t2.rollback();
             console.log(err);
             res.status(500).json({error:err.message});
         }

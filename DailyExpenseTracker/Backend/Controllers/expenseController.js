@@ -354,7 +354,7 @@ res.status(200).json({monthlyReport:responseArr})
 
 }
 
-const generateCategoryUsingAI = async (req,res)=>{
+const generateCategoryUsingAI = async (req,res,next)=>{
     let {description} = req.body;
         console.log(req.body);
         let UserId = req.UserId;

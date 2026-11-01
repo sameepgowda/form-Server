@@ -28,8 +28,10 @@ function Login() {
         const response = await axios.post("http://localhost:3000/expenseTracker/user/login",payload);
         console.log(response);
         if(response.status==200){
-            window.alert("Login Successful");
+            sessionStorage.setItem("isPremium",(response.data.isPremium==1));
+            
             sessionStorage.setItem("token",response.data.token);
+            window.alert("Login Successful");
             navigate("/home");
         }
     }catch(err){

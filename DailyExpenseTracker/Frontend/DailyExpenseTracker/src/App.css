@@ -1208,5 +1208,41 @@ body:has(#cf_checkout:not(:empty))::before {
     }
 }
 
+/* Premium user header items */
+
+.premium-user-text {
+    color: #f5b942;
+    font-weight: 700;
+    font-size: 15px;
+    white-space: nowrap;
+}
+
+.leaderboard-button {
+    padding: 10px 18px;
+    background: rgba(245, 185, 66, 0.15);
+    color: #f5b942;
+    border: 1px solid rgba(245, 185, 66, 0.45);
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.2s ease;
+}
+
+.leaderboard-button:hover {
+    background: rgba(245, 185, 66, 0.28);
+    transform: translateY(-2px);
+}
+
+@media (max-width: 480px) {
+    .premium-user-text {
+        font-size: 12px;
+    }
+
+    .leaderboard-button {
+        padding: 9px 12px;
+        font-size: 12px;
+    }
+}
+
 
 

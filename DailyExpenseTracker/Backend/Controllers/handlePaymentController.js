@@ -1,4 +1,6 @@
 import cashFreeService from "../Services/cashFreeService.js";
+import userController from "./userController.js";
+import {User} from "../../Database/index.js";
 
 
 
@@ -19,7 +21,7 @@ const createPaymentOrder = async (req,res)=>{
 
         res.status(201).json({message:"Payment order created",
             paymentSessionId: orderInfo.data.payment_session_id,
-    orderId: orderInfo.data.order_id
+            orderId: orderInfo.data.order_id
         });
         }catch(err){
             console.log(err);
@@ -40,7 +42,9 @@ const verifyPayment = async (req,res)=>{
         // console.log("Payment verification Info", orderInfo);
         console.log("orderInfo",orderInfo);
         if(orderInfo.data.order_status=="PAID"){
-             res.status(200).json({message:"payment successful"});
+             await User.update({isPremium:true},{where:{id:req.UserId}});
+             res.status(200).json({message:"Payment successful. You're now a premium user"});
+             
         }else{
             res.status(500).json({message:"payment failed"});
         }

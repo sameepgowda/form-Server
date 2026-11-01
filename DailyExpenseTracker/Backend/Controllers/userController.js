@@ -44,7 +44,7 @@ const userLogin = async (req,res)=>{
             const passwordsMatch = await bcrypt.compare(password,userInfo.password);
             if(passwordsMatch){
                 const token = jwt.sign({UserId:userInfo.id},JWTkey,{expiresIn:"1h"})
-                return res.status(200).json({message:"Login successful",success:true,token:token})
+                return res.status(200).json({message:"Login successful",success:true,token:token,isPremium:userInfo.isPremium})
             }else{
                 return res.status(401).json({message:"User not authorized",success:false})
             }
@@ -58,6 +58,7 @@ const userLogin = async (req,res)=>{
         res.status(400).json({message:"Bad request"})
     }
 }
+
 
 
 export default {createUser, userLogin};

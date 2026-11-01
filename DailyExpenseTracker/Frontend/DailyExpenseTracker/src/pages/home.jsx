@@ -38,6 +38,9 @@ function Home() {
     const [paymentPopup, setPaymentPopup] = useState(null);
     const [showPremiumPopup, setShowPremiumPopup] = useState(false);
 
+    // Read premium status from sessionStorage before the page renders
+    const isPremium = sessionStorage.getItem("isPremium") === "true";
+
     const ADD_EXPENSE_API =
         "http://localhost:3000/expenseTracker/expense/addExpense";
     
@@ -92,6 +95,11 @@ function Home() {
             console.log("Payment/verification error:", err);
             setPaymentPopup("failure");
         }
+    };
+
+    // Show leaderboard (to be implemented)
+    const showLeaderboard = () => {
+
     };
 
     // Close the premium popup immediately, then start the payment flow
@@ -393,12 +401,25 @@ function Home() {
                 
 
                 <div className="header-actions">
-    <button
-        className="premium-button"
-        onClick={() => setShowPremiumPopup(true)}
-    >
-        Premium Subscription
-    </button>
+    {isPremium ? (
+        <>
+            <span className="premium-user-text">Premium User</span>
+
+            <button
+                className="leaderboard-button"
+                onClick={showLeaderboard}
+            >
+                Show Leaderboard
+            </button>
+        </>
+    ) : (
+        <button
+            className="premium-button"
+            onClick={() => setShowPremiumPopup(true)}
+        >
+            Premium Subscription
+        </button>
+    )}
 
     <button
         className="logout-button"

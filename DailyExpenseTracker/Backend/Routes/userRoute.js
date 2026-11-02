@@ -22,4 +22,8 @@ router.get("/getLeaderBoardData", authMiddleware, userController.getLeaderBoardD
 
 router.post("/forgotPassword", userController.sendForgotPasswordLink);
 
+router.get("/showResetForm/:token", userController.showResetForm);
+
+router.post("/resetPassword", userController.resetPassword);
+
 export default router;

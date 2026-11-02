@@ -1,7 +1,10 @@
-import {User} from "../../Database/index.js";
+import {User, ForgotPasswordRequest} from "../../Database/index.js";
 import bcrypt from "bcrypt";
 import jwt from 'jsonwebtoken';
 import emailService from "../Services/emailService.js";
+import { randomUUID } from 'crypto';
+import { sequelize } from "../../Database/db.js";
+import renderHTML from "../Services/renderHTML.js";
 
 const JWTkey = "JPHJ9qZNUADGiQxVCyOrQmeRf9vmdmGJ4rHoU5rktgO";
 
@@ -84,8 +87,15 @@ const sendForgotPasswordLink = async (req,res)=>{
 
     try{
         const receiverEmailId = req.body.email;
-        await emailService.sendEmail(receiverEmailId);
-        return res.status(204).json({message:"Email sent"});
+        const userInfo = await User.findAll({where:{email:receiverEmailId},  raw:true});
+        if(userInfo.length==0){
+            return res.status(400).json({message:"User not found"});
+        }
+        const id = randomUUID();
+        await ForgotPasswordRequest.create({id,UserId:userInfo[0].id,isActive:true});
+        const hyperLink = `http://localhost:3000/expenseTracker/user/showResetForm/${id}`;
+        await emailService.sendEmail(hyperLink,receiverEmailId);
+        return res.status(204).json();
     }catch(err){
         console.log(err)
         return res.status(500).json({error:err.message});
@@ -93,8 +103,67 @@ const sendForgotPasswordLink = async (req,res)=>{
 
 }
 
+const showResetForm = async (req,res)=>{
+    if(!req.params.token){
+         return res.status(400).send(renderHTML.renderPage('Invalid request', 'Please go back and try again.'));
+   
+    }
+    try{
+        console.log("step1");
+        const token = req.params.token;
+    const forgotPasswordData = await ForgotPasswordRequest.findAll({where:{id:token,isActive:true}, raw:true});
+    if(forgotPasswordData.length==0){
+          return res.status(400).send(renderHTML.renderPage('Link expired', 'This reset link is invalid or has expired. Please request a new one.'));
+  
+    }
+    console.log("step2");
+    res.send(renderHTML.renderPage('Reset password', 'Enter your new password.', `
+            <form method="POST" action="/expenseTracker/user/resetPassword">
+             <input type="hidden" name="token" value="${token}">
+                <input type="password" name="newPassword" placeholder="New password" minlength="8" required>
+                <button type="submit">Change password</button>
+            </form>`));
+            console.log("step3")
+    }catch(err){
+        console.log(err);
+       res.status(500).send(renderHTML.renderPage('Something went wrong', 'Please try again later.'));
+  }
 
-export default {createUser, userLogin, getLeaderBoardData, sendForgotPasswordLink};
+}
+
+const resetPassword = async (req,res) => {
+    console.log("BODY",req.body);
+    if(!req.body.newPassword || !req.body.token){
+        return res.status(400).json({message:"Bad request"});
+    }
+    const t4 = await sequelize.transaction();
+    try{
+        const {token,newPassword} = req.body;
+        const forgotPasswordData = await ForgotPasswordRequest.findAll({where:{id:token,isActive:true}, raw:true});
+    if(forgotPasswordData.length==0){
+         return res.status(400).send(renderHTML.renderPage('Link expired', 'This reset link is invalid or has expired. Please request a new one.'));
+  
+    }
+    console.log("STEP A");
+    const UserId = forgotPasswordData[0].UserId;
+    const hashedPassword = await bcrypt.hash(newPassword,10);
+    await User.update({password:hashedPassword},{where:{id:UserId},transaction:t4});
+    console.log("STEP B")
+    await ForgotPasswordRequest.update({isActive:false},{where:{id:token},transaction:t4});
+    console.log("STEP C");
+    await t4.commit();
+     res.send(renderHTML.renderPage('Password changed', 'Your password has been changed successfully. You can now log in with your new password.'));
+ 
+
+    }catch(err){
+        console.log(err);
+        await t4.rollback();
+        res.status(500).send(renderHTML.renderPage('Something went wrong', 'Please try again later.'));
+  }
+}
+
+
+export default {createUser, userLogin, getLeaderBoardData, sendForgotPasswordLink, showResetForm, resetPassword};
 
 
 

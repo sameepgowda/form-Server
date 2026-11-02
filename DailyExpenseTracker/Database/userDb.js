@@ -29,9 +29,26 @@ const User = sequelize.define("User",{
         defaultValue:0
     }
     
+
     
 });
 
+const ForgotPasswordRequest = sequelize.define("ForgotPasswordRequest",
+    {
+        id:{
+            type:DataTypes.STRING,
+            unique:true,
+            allowNull:false,
+            primaryKey:true
+        },
+        isActive:{
+            type:DataTypes.BOOLEAN,
+            allowNull:false,
+            defaultValue:false
+        }
+    }
+)
 
 
-export {User};
+
+export {User,ForgotPasswordRequest};

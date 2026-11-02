@@ -22,6 +22,8 @@ app.use(cors({
 
 app.use(express.json());
 
+app.use(express.urlencoded({ extended: true }));
+
 app.use("/expenseTracker/user",userRouter);
 app.use("/expenseTracker/expense",expenseRouter);
 app.use("/expenseTracker/payment", paymentRouter);

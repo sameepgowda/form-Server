@@ -3,7 +3,7 @@ import SibApiV3Sdk from 'sib-api-v3-sdk';
 
 dotenv.config();
 
-const sendEmail = async (receiverEmailId) => {
+const sendEmail = async (hyperLink,receiverEmailId) => {
 
 const defaultClient = SibApiV3Sdk.ApiClient.instance;
 defaultClient.authentications['api-key'].apiKey = process.env.BREVO_API_KEY;
@@ -19,7 +19,9 @@ const receivers = [{
 }]
 
 return transactionalApi.sendTransacEmail({
-    sender,to:receivers,subject:"Password reset", textContent:"Hello from the other side"
+sender,to:receivers,subject:"Password reset",
+htmlContent: `<p>Click <a href="${hyperLink}">here</a> to reset your password.</p>`
+
 })
 
 }

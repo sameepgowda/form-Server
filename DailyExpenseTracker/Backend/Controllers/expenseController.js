@@ -168,8 +168,10 @@ const bulkDeleteExpense = async (req, res)=>{
 }
 
 const getMonthlyReport = async (req,res)=>{
-    let {month,year,UserId} = req.body;
-    if(month && year && UserId){
+    console.log("MONTH",req.body)
+    let {month,year} = req.body;
+    const UserId = req.UserId;
+    if(month && year){
         try{
         // let t2 = sequelize.transaction();
         let dailyExpenses = [];
@@ -214,12 +216,7 @@ const getMonthlyReport = async (req,res)=>{
                 }
             },0);
 
-            const [monthlyBalanceData] = await DailyBalance.findAll({where:{
-                UserId,
-                date:{[Op.gte]:startDate,[Op.lt]:endDate}
-            },order:[["date","desc"]],raw:true})
-
-            totalMonthlyBalance = monthlyBalanceData.closingBalance;
+            
 
             
             let currDate = startDate;
@@ -273,26 +270,14 @@ const getMonthlyReport = async (req,res)=>{
             })
            
         
-    }else{
-        const balanceData = await DailyBalance.findAll({where:{
-            UserId,
-            date:{
-                [Op.lt]:startDate
-            }
-        },raw:true,order:[["date","desc"]]});
-        if(balanceData.length>0){
-
-            totalMonthlyBalance = balanceData[0].closingBalance;
-        }
     }
 
     const responseObj = {
-        UserId,totalMonthlyIncome,totalMonthlyExpense,totalMonthlyBalance, dailyExpenses
+        totalMonthlyIncome,totalMonthlyExpense, dailyExpenses
        }
     res.status(200).json(responseObj);
 
       }catch(err){
-        // await t2.rollback();
         res.status(500).json({"error":err.message});
         console.log(err);
     }
@@ -312,7 +297,7 @@ const getYearlyReport = async (req,res)=>{
         const endDate = `${String(req.body.year)}-12-31`;
     
 
-    const monthlyExpense = await ExpenseData.findAll({attributes:[[fn("MONTH",col("date")),"month"],[fn("SUM", col("expenseAmount") ),"totalExpense"]],
+const monthlyExpense = await ExpenseData.findAll({attributes:[[fn("MONTH",col("date")),"month"],[fn("SUM", col("expenseAmount") ),"totalExpense"]],
    
 where:{UserId,date:{[Op.gte]:startDate,[Op.lte]:endDate},expenseAmount:{[Op.lt]:0}},group:[fn("MONTH",col("date"))],order:[[fn("MONTH",col("date")),"desc"]],raw:true});
 

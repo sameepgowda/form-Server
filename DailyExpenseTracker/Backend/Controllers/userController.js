@@ -1,6 +1,7 @@
 import {User} from "../../Database/index.js";
 import bcrypt from "bcrypt";
 import jwt from 'jsonwebtoken';
+import emailService from "../Services/emailService.js";
 
 const JWTkey = "JPHJ9qZNUADGiQxVCyOrQmeRf9vmdmGJ4rHoU5rktgO";
 
@@ -75,8 +76,25 @@ const getLeaderBoardData = async (req,res)=>{
     
 }
 
+const sendForgotPasswordLink = async (req,res)=>{
 
-export default {createUser, userLogin, getLeaderBoardData};
+    if(!req.body.email ){
+        return res.status(400).json({message:"Bad request"})
+    }
+
+    try{
+        const receiverEmailId = req.body.email;
+        await emailService.sendEmail(receiverEmailId);
+        return res.status(204).json({message:"Email sent"});
+    }catch(err){
+        console.log(err)
+        return res.status(500).json({error:err.message});
+    }
+
+}
+
+
+export default {createUser, userLogin, getLeaderBoardData, sendForgotPasswordLink};
 
 
 
@@ -93,3 +111,24 @@ export default {createUser, userLogin, getLeaderBoardData};
 
 // const user = User.findByPk(1);
 //user.totalExpense += 100;
+
+
+
+
+
+// import axios from 'axios';
+
+// export const sendEmail = async ({ to, subject, htmlContent }) => {
+//     return axios.post(
+//         'https://api.brevo.com/v3/smtp/email',
+//         {
+//             sender: { name: 'Expense Tracker', email: process.env.BREVO_SENDER_EMAIL },
+//             to: [{ email: to }],
+//             subject,
+//             htmlContent
+//         },
+//         { headers: { 'api-key': process.env.BREVO_API_KEY } }
+//     );
+// };
+//const response = await sendEMail({to,subject, htmlContent});
+//The sendEMail function returns a pending promise whoch needs to be resolved

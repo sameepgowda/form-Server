@@ -1475,5 +1475,596 @@ body:has(#cf_checkout:not(:empty))::before {
     }
 }
 
+/* Daily income / expense summary next to the date input */
+
+.daily-summary {
+    display: flex;
+    align-items: stretch;
+    gap: 12px;
+    margin-left: auto;
+}
+
+.summary-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 170px;
+    padding: 10px 16px 10px 12px;
+    border: 1px solid transparent;
+    border-radius: 12px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.summary-card:hover {
+    transform: translateY(-2px);
+}
+
+.summary-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    font-size: 18px;
+    font-weight: 750;
+    line-height: 1;
+}
+
+.summary-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.summary-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+}
+
+.summary-amount {
+    font-size: 18px;
+    font-weight: 750;
+    letter-spacing: -0.3px;
+    white-space: nowrap;
+}
+
+/* Income */
+
+.summary-income {
+    background: linear-gradient(135deg, #effcf6, #e2f8ee);
+    border-color: #c9f0de;
+}
+
+.summary-income:hover {
+    box-shadow: 0 8px 20px rgba(32, 185, 133, 0.18);
+}
+
+.summary-income .summary-icon {
+    background: #20b985;
+    color: white;
+    box-shadow: 0 4px 10px rgba(32, 185, 133, 0.35);
+}
+
+.summary-income .summary-label {
+    color: #3c9a77;
+}
+
+.summary-income .summary-amount {
+    color: #119b70;
+}
+
+/* Expense */
+
+.summary-expense {
+    background: linear-gradient(135deg, #fff5f6, #ffecee);
+    border-color: #ffd9de;
+}
+
+.summary-expense:hover {
+    box-shadow: 0 8px 20px rgba(240, 107, 120, 0.18);
+}
+
+.summary-expense .summary-icon {
+    background: #f06b78;
+    color: white;
+    box-shadow: 0 4px 10px rgba(240, 107, 120, 0.35);
+}
+
+.summary-expense .summary-label {
+    color: #cf6571;
+}
+
+.summary-expense .summary-amount {
+    color: #e05265;
+}
+
+/* Tablet and mobile */
+
+@media (max-width: 768px) {
+    .daily-summary {
+        flex: 1 1 100%;
+        margin-left: 0;
+    }
+
+    .summary-card {
+        flex: 1;
+        min-width: 0;
+    }
+}
+
+@media (max-width: 600px) {
+    .daily-summary {
+        width: 100%;
+    }
+}
+
+@media (max-width: 480px) {
+    .daily-summary {
+        flex-direction: column;
+    }
+
+    .summary-amount {
+        font-size: 16px;
+    }
+}
+
+/* Bold, modern date picker */
+
+.date-filter .date-navigation input {
+    min-width: 170px;
+    padding: 11px 16px;
+    border: 2px solid #e4dfff;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #ffffff, #f6f3ff);
+    color: #292c49;
+    font-size: 16px;
+    font-weight: 800;
+    letter-spacing: 0.3px;
+    text-align: center;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(112, 87, 237, 0.12);
+    transition: all 0.2s ease;
+}
+
+.date-filter .date-navigation input:hover {
+    border-color: #b9a9ff;
+    box-shadow: 0 6px 18px rgba(112, 87, 237, 0.2);
+    transform: translateY(-1px);
+}
+
+.date-filter .date-navigation input:focus {
+    border-color: #7057ed;
+    background: white;
+    outline: none;
+    box-shadow: 0 0 0 4px rgba(112, 87, 237, 0.15);
+}
+
+/* Calendar icon (Chrome, Edge, Safari) */
+.date-navigation input::-webkit-calendar-picker-indicator {
+    padding: 5px;
+    border-radius: 8px;
+    cursor: pointer;
+    opacity: 0.85;
+    filter: invert(35%) sepia(80%) saturate(2400%) hue-rotate(235deg);
+    transition: background 0.2s ease, opacity 0.2s ease;
+}
+
+.date-navigation input::-webkit-calendar-picker-indicator:hover {
+    background: #ebe6ff;
+    opacity: 1;
+}
+
+/* Highlight the day / month / year segment being edited */
+.date-navigation input::-webkit-datetime-edit-day-field:focus,
+.date-navigation input::-webkit-datetime-edit-month-field:focus,
+.date-navigation input::-webkit-datetime-edit-year-field:focus {
+    background: #7057ed;
+    color: white;
+    border-radius: 5px;
+}
+
+@media (max-width: 600px) {
+    .date-filter .date-navigation input {
+        min-width: 0;
+        font-size: 15px;
+    }
+}
+
+/* View tabs (Daily / Monthly / Yearly) */
+
+.view-tabs {
+    display: inline-flex;
+    gap: 6px;
+    padding: 6px;
+    margin-bottom: 28px;
+    background: white;
+    border: 1px solid #e9eaf3;
+    border-radius: 14px;
+    box-shadow: 0 4px 16px rgba(40, 43, 80, 0.045);
+}
+
+.view-tab {
+    min-width: 110px;
+    padding: 11px 24px;
+    border: none;
+    border-radius: 10px;
+    background: transparent;
+    color: #6b6f8d;
+    font-size: 14px;
+    font-weight: 650;
+    letter-spacing: 0.2px;
+}
+
+.view-tab:hover:not(.active) {
+    background: #f4f1ff;
+    color: #5b45d6;
+}
+
+.view-tab.active {
+    background: linear-gradient(120deg, #7057ed, #9275ff);
+    color: white;
+    box-shadow: 0 6px 16px rgba(112, 87, 237, 0.3);
+}
+
+/* Monthly report */
+
+.monthly-days {
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+}
+
+.monthly-day-card {
+    background: white;
+    border: 1px solid #e9eaf3;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 5px 22px rgba(40, 43, 80, 0.045);
+    transition: box-shadow 0.25s ease;
+}
+
+.monthly-day-card:hover {
+    box-shadow: 0 9px 28px rgba(40, 43, 80, 0.075);
+}
+
+.monthly-day-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 16px 22px;
+    background: linear-gradient(120deg, #f8f6ff, #f1eeff);
+    border-bottom: 1px solid #ebe7ff;
+}
+
+.monthly-day-date {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 18px;
+    font-weight: 750;
+    letter-spacing: -0.3px;
+    color: #292c49;
+}
+
+.monthly-day-date::before {
+    content: "";
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: #7057ed;
+    box-shadow: 0 0 0 5px rgba(112, 87, 237, 0.14);
+}
+
+.monthly-day-totals {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.day-total {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 13px;
+    border-radius: 9px;
+    font-size: 14px;
+    font-weight: 750;
+    white-space: nowrap;
+}
+
+.day-total-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    opacity: 0.8;
+}
+
+.day-total-income {
+    background: #e9faf3;
+    color: #119b70;
+}
+
+.day-total-expense {
+    background: #fff0f1;
+    color: #e05265;
+}
+
+.monthly-day-card .expense-list {
+    padding: 18px 22px 22px;
+}
+
+@media (max-width: 768px) {
+    .view-tabs {
+        display: flex;
+        width: 100%;
+    }
+
+    .view-tab {
+        flex: 1;
+        min-width: 0;
+        padding: 11px 10px;
+    }
+}
+
+@media (max-width: 480px) {
+    .monthly-day-header {
+        padding: 14px 16px;
+    }
+
+    .monthly-day-date {
+        font-size: 16px;
+    }
+
+    .monthly-day-card .expense-list {
+        padding: 14px 12px 16px;
+    }
+
+    .monthly-day-totals {
+        width: 100%;
+    }
+
+    .day-total {
+        flex: 1;
+        justify-content: space-between;
+        font-size: 13px;
+    }
+}
+
+/* Forgot password link on the login form */
+
+.signup-form .forgot-password-link {
+    align-self: center;
+    width: auto;
+    min-height: 0;
+    margin: 14px 0 22px;
+    padding: 4px 6px;
+    background: none;
+    color: #4f46e5;
+    font-size: 14px;
+    font-weight: 600;
+    border-radius: 6px;
+    transition: color 0.2s ease, background 0.2s ease;
+}
+
+.signup-form .forgot-password-link:hover {
+    background: #eef2ff;
+    color: #4338ca;
+}
+
+/* Forgot password popup */
+
+.reset-modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    background: rgba(17, 24, 39, 0.6);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    animation: resetFadeIn 0.2s ease;
+}
+
+.reset-modal {
+    position: relative;
+    width: 100%;
+    max-width: 420px;
+    padding: 36px 32px 32px;
+    background: white;
+    border-radius: 18px;
+    text-align: center;
+    box-shadow: 0 25px 80px rgba(0, 0, 0, 0.25);
+    animation: resetSlideUp 0.25s ease;
+}
+
+.reset-close-button {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    width: 34px;
+    height: 34px;
+    border: none;
+    border-radius: 50%;
+    background: #f3f4f6;
+    color: #6b7280;
+    font-size: 24px;
+    line-height: 1;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.reset-close-button:hover {
+    background: #e0e7ff;
+    color: #4f46e5;
+    transform: rotate(90deg);
+}
+
+.reset-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 64px;
+    height: 64px;
+    margin: 0 auto 18px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #e0e7ff, #c7d2fe);
+    color: #4f46e5;
+    font-size: 28px;
+    box-shadow: 0 8px 20px rgba(79, 70, 229, 0.18);
+}
+
+.reset-icon.success {
+    background: linear-gradient(135deg, #dcfce7, #bbf7d0);
+    color: #16a34a;
+    font-size: 32px;
+    font-weight: 700;
+    box-shadow: 0 8px 20px rgba(22, 163, 74, 0.2);
+}
+
+.reset-modal h2 {
+    margin: 0 0 8px;
+    font-size: 22px;
+    font-weight: 750;
+    color: #1f2937;
+}
+
+.reset-description {
+    margin: 0 0 24px;
+    font-size: 14px;
+    line-height: 1.6;
+    color: #6b7280;
+}
+
+.reset-description strong {
+    color: #4f46e5;
+    word-break: break-all;
+}
+
+.reset-modal form {
+    display: flex;
+    flex-direction: column;
+    text-align: left;
+}
+
+.reset-modal label {
+    margin-bottom: 6px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #374151;
+}
+
+.reset-modal input {
+    width: 100%;
+    min-width: 0;
+    padding: 12px 14px;
+    margin-bottom: 18px;
+    border: 1px solid #d1d5db;
+    border-radius: 10px;
+    background: #f9fafb;
+    font-size: 16px;
+    outline: none;
+    transition: all 0.2s ease;
+}
+
+.reset-modal input:focus {
+    border-color: #6366f1;
+    background: white;
+    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15);
+}
+
+.reset-error {
+    margin-bottom: 16px;
+    padding: 12px 14px;
+    border: 1px solid #fecaca;
+    border-radius: 10px;
+    background: #fef2f2;
+    color: #dc2626;
+    font-size: 14px;
+    font-weight: 600;
+    text-align: center;
+}
+
+.reset-primary-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    min-height: 46px;
+    padding: 12px;
+    border: none;
+    border-radius: 10px;
+    background: linear-gradient(120deg, #4f46e5, #6366f1);
+    color: white;
+    font-size: 15px;
+    font-weight: 650;
+    cursor: pointer;
+    box-shadow: 0 6px 16px rgba(79, 70, 229, 0.28);
+    transition: all 0.2s ease;
+}
+
+.reset-primary-button:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 22px rgba(79, 70, 229, 0.38);
+}
+
+.reset-primary-button:disabled {
+    opacity: 0.85;
+    cursor: wait;
+}
+
+.reset-spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255, 255, 255, 0.35);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: resetSpin 0.7s linear infinite;
+}
+
+@keyframes resetFadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes resetSlideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes resetSpin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@media (max-width: 480px) {
+    .reset-modal {
+        padding: 32px 20px 24px;
+    }
+}
+
 
 

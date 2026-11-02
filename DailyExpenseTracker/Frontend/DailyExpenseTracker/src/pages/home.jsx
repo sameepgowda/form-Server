@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import { load } from "@cashfreepayments/cashfree-js";
 
@@ -9,6 +9,18 @@ function getTodayDate() {
     return new Date(today.getTime() - offset * 60000)
         .toISOString()
         .split('T')[0];
+}
+
+const MONTH_NAMES = [
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+];
+
+// Convert "2026-11-01" into "1-Nov-2026"
+function formatReportDate(dateString) {
+    const [year, month, day] = dateString.split('-').map(Number);
+
+    return `${day}-${MONTH_NAMES[month - 1]}-${year}`;
 }
 
 function Home() {
@@ -50,6 +62,21 @@ function Home() {
         'Other'
     ]);
     const [suggestingCategory, setSuggestingCategory] = useState(false);
+    const [dailyTotals, setDailyTotals] = useState({
+        totalIncome: 0,
+        totalExpense: 0
+    });
+
+    const [activeTab, setActiveTab] = useState('daily');
+    const [selectedMonth, setSelectedMonth] = useState(getTodayDate().slice(0, 7));
+    const [monthlyReport, setMonthlyReport] = useState({
+        totalMonthlyIncome: 0,
+        totalMonthlyExpense: 0,
+        dailyExpenses: []
+    });
+    const [monthlyLoading, setMonthlyLoading] = useState(true);
+    const [monthlyError, setMonthlyError] = useState('');
+    const monthlyRequestId = useRef(0);
 
     // Read premium status from sessionStorage before the page renders
     const isPremium = sessionStorage.getItem("isPremium") === "true";
@@ -61,6 +88,9 @@ function Home() {
 
     const GET_EXPENSES_API =
         "http://localhost:3000/expenseTracker/expense/getDailyBalance";
+
+    const MONTHLY_REPORT_API =
+        "http://localhost:3000/expenseTracker/expense/getMonthlyReport";
 
     // Premium subscription button click
     const handlePremiumSubscriptionClick = async () => {
@@ -185,6 +215,58 @@ function Home() {
        
     }
 
+    // Fetch the report for the selected month
+    const getMonthlyReport = async () => {
+        const requestId = ++monthlyRequestId.current;
+
+        try {
+            setMonthlyLoading(true);
+            setMonthlyError('');
+
+            const token = sessionStorage.getItem("token");
+            const [year, month] = selectedMonth.split('-').map(Number);
+
+            const payload = {
+                month: month,
+                year: year
+            };
+
+            const response = await axios.post(
+                MONTHLY_REPORT_API,
+                payload,
+                {
+                    headers: {
+                        Authorization: `${token}`
+                    }
+                }
+            );
+
+            // Ignore this response if the user has already moved to another month
+            if (requestId !== monthlyRequestId.current) return;
+
+            setMonthlyReport({
+                totalMonthlyIncome: Number(response.data.totalMonthlyIncome) || 0,
+                totalMonthlyExpense: Number(response.data.totalMonthlyExpense) || 0,
+                dailyExpenses: response.data.dailyExpenses || []
+            });
+
+        } catch (err) {
+            if (requestId !== monthlyRequestId.current) return;
+
+            console.log(err);
+            setMonthlyError("Unable to load the monthly report.");
+            setMonthlyReport({
+                totalMonthlyIncome: 0,
+                totalMonthlyExpense: 0,
+                dailyExpenses: []
+            });
+        } finally {
+            if (requestId === monthlyRequestId.current) {
+                setMonthlyLoading(false);
+            }
+        }
+    };
+
     // Fetch transactions for the selected date
     const getExpenses = async () => {
         try {
@@ -210,9 +292,15 @@ function Home() {
                 expenseData: response.data.expenseData || []
             });
 
+            setDailyTotals({
+                totalIncome: Number(response.data.totalIncome) || 0,
+                totalExpense: Number(response.data.totalExpense) || 0
+            });
+
         } catch (err) {
             console.log(err);
             setError("Unable to load transactions.");
+            setDailyTotals({ totalIncome: 0, totalExpense: 0 });
         } finally {
             setLoading(false);
         }
@@ -222,6 +310,13 @@ function Home() {
     useEffect(() => {
         getExpenses();
     }, [selectedDate]);
+
+    // Fetch the monthly report when the monthly tab opens or the month changes
+    useEffect(() => {
+        if (activeTab === 'monthly') {
+            getMonthlyReport();
+        }
+    }, [activeTab, selectedMonth]);
 
     // Handle date picker changes
     const handleDateChange = (e) => {
@@ -242,6 +337,27 @@ function Home() {
         ].join('-');
 
         setSelectedDate(updatedDate);
+    };
+
+    // Handle month picker changes
+    const handleMonthChange = (e) => {
+        if (e.target.value) {
+            setSelectedMonth(e.target.value);
+        }
+    };
+
+    // Navigate between months
+    const changeMonth = (months) => {
+        const [year, month] = selectedMonth.split('-').map(Number);
+
+        const date = new Date(year, month - 1 + months, 1);
+
+        const updatedMonth = [
+            date.getFullYear(),
+            String(date.getMonth() + 1).padStart(2, '0')
+        ].join('-');
+
+        setSelectedMonth(updatedMonth);
     };
 
     const handleChange = (e) => {
@@ -517,96 +633,321 @@ function Home() {
 
             <main className="home-content">
 
-                <div className="transactions-toolbar">
-                    <div>
-                        <h2>Previous Transactions</h2>
-                        <p className="section-description">
-                            View your income and expenses.
-                        </p>
-                    </div>
-
-                    <button
-                        className="add-button"
-                        onClick={() => {
-                            setEditingTransaction(null);
-
-                            setFormData({
-                                description: '',
-                                transactionType: 'debit',
-                                amount: '',
-                                category: 'Food'
-                            });
-
-                            setShowForm(true);
-                        }}
-                    >
-                        + Add Expense
-                    </button>
+                {/* View tabs */}
+                <div className="view-tabs" role="tablist">
+                    {[
+                        { key: 'daily', label: 'Daily' },
+                        { key: 'monthly', label: 'Monthly' },
+                        { key: 'yearly', label: 'Yearly' }
+                    ].map((tab) => (
+                        <button
+                            key={tab.key}
+                            type="button"
+                            role="tab"
+                            aria-selected={activeTab === tab.key}
+                            className={`view-tab${activeTab === tab.key ? ' active' : ''}`}
+                            onClick={() => setActiveTab(tab.key)}
+                        >
+                            {tab.label}
+                        </button>
+                    ))}
                 </div>
 
-                {/* Date navigation */}
-                <div className="date-filter">
-
-                    <label htmlFor="transaction-date">
-                        Select date
-                    </label>
-
-                    <div className="date-navigation">
-
-                        <button
-                            type="button"
-                            className="date-nav-button"
-                            onClick={() => changeDate(-1)}
-                            aria-label="Previous date"
-                        >
-                            &#8249;
-                        </button>
-
-                        <input
-                            id="transaction-date"
-                            type="date"
-                            value={selectedDate}
-                            onChange={handleDateChange}
-                        />
-
-                        <button
-                            type="button"
-                            className="date-nav-button"
-                            onClick={() => changeDate(1)}
-                            aria-label="Next date"
-                        >
-                            &#8250;
-                        </button>
-
-                    </div>
-
-                </div>
-
-                {loading ? (
-                    <p className="empty-message">
-                        Loading transactions...
-                    </p>
-                ) : error ? (
-                    <p className="error-message">{error}</p>
-                ) : (
+                {activeTab === 'daily' && (
                     <>
-                        <section className="transaction-section">
-                            <h2>Income</h2>
 
-                            {renderTransactions(
-                                transactions.incomeData,
-                                true
-                            )}
-                        </section>
+                        <div className="transactions-toolbar">
+                            <div>
+                                <h2>Previous Transactions</h2>
+                                <p className="section-description">
+                                    View your income and expenses.
+                                </p>
+                            </div>
 
-                        <section className="transaction-section">
-                            <h2>Expenses</h2>
+                            <button
+                                className="add-button"
+                                onClick={() => {
+                                    setEditingTransaction(null);
 
-                            {renderTransactions(
-                                transactions.expenseData,
-                                false
-                            )}
-                        </section>
+                                    setFormData({
+                                        description: '',
+                                        transactionType: 'debit',
+                                        amount: '',
+                                        category: 'Food'
+                                    });
+
+                                    setShowForm(true);
+                                }}
+                            >
+                                + Add Expense
+                            </button>
+                        </div>
+
+                        {/* Date navigation */}
+                        <div className="date-filter">
+
+                            <label htmlFor="transaction-date">
+                                Select date
+                            </label>
+
+                            <div className="date-navigation">
+
+                                <button
+                                    type="button"
+                                    className="date-nav-button"
+                                    onClick={() => changeDate(-1)}
+                                    aria-label="Previous date"
+                                >
+                                    &#8249;
+                                </button>
+
+                                <input
+                                    id="transaction-date"
+                                    type="date"
+                                    value={selectedDate}
+                                    onChange={handleDateChange}
+                                />
+
+                                <button
+                                    type="button"
+                                    className="date-nav-button"
+                                    onClick={() => changeDate(1)}
+                                    aria-label="Next date"
+                                >
+                                    &#8250;
+                                </button>
+
+                            </div>
+
+                            <div className="daily-summary">
+
+                                <div className="summary-card summary-income">
+                                    <span className="summary-icon">↑</span>
+                                    <div className="summary-text">
+                                        <span className="summary-label">
+                                            Total Income
+                                        </span>
+                                        <span className="summary-amount">
+                                            +{formatAmount(
+                                                Math.abs(dailyTotals.totalIncome)
+                                            )}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div className="summary-card summary-expense">
+                                    <span className="summary-icon">↓</span>
+                                    <div className="summary-text">
+                                        <span className="summary-label">
+                                            Total Expense
+                                        </span>
+                                        <span className="summary-amount">
+                                            -{formatAmount(
+                                                Math.abs(dailyTotals.totalExpense)
+                                            )}
+                                        </span>
+                                    </div>
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                        {loading ? (
+                            <p className="empty-message">
+                                Loading transactions...
+                            </p>
+                        ) : error ? (
+                            <p className="error-message">{error}</p>
+                        ) : (
+                            <>
+                                <section className="transaction-section">
+                                    <h2>Income</h2>
+
+                                    {renderTransactions(
+                                        transactions.incomeData,
+                                        true
+                                    )}
+                                </section>
+
+                                <section className="transaction-section">
+                                    <h2>Expenses</h2>
+
+                                    {renderTransactions(
+                                        transactions.expenseData,
+                                        false
+                                    )}
+                                </section>
+                            </>
+                        )}
+
+
+                    </>
+                )}
+
+                {activeTab === 'monthly' && (
+                    <>
+
+                        <div className="transactions-toolbar">
+                            <div>
+                                <h2>Monthly Report</h2>
+                                <p className="section-description">
+                                    View your income and expenses for the month.
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* Month navigation */}
+                        <div className="date-filter">
+
+                            <label htmlFor="report-month">
+                                Select month
+                            </label>
+
+                            <div className="date-navigation">
+
+                                <button
+                                    type="button"
+                                    className="date-nav-button"
+                                    onClick={() => changeMonth(-1)}
+                                    aria-label="Previous month"
+                                >
+                                    &#8249;
+                                </button>
+
+                                <input
+                                    id="report-month"
+                                    type="month"
+                                    value={selectedMonth}
+                                    onChange={handleMonthChange}
+                                />
+
+                                <button
+                                    type="button"
+                                    className="date-nav-button"
+                                    onClick={() => changeMonth(1)}
+                                    aria-label="Next month"
+                                >
+                                    &#8250;
+                                </button>
+
+                            </div>
+
+                            <div className="daily-summary">
+
+                                <div className="summary-card summary-income">
+                                    <span className="summary-icon">↑</span>
+                                    <div className="summary-text">
+                                        <span className="summary-label">
+                                            Monthly Income
+                                        </span>
+                                        <span className="summary-amount">
+                                            +{formatAmount(
+                                                Math.abs(monthlyReport.totalMonthlyIncome)
+                                            )}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div className="summary-card summary-expense">
+                                    <span className="summary-icon">↓</span>
+                                    <div className="summary-text">
+                                        <span className="summary-label">
+                                            Monthly Expense
+                                        </span>
+                                        <span className="summary-amount">
+                                            -{formatAmount(
+                                                Math.abs(monthlyReport.totalMonthlyExpense)
+                                            )}
+                                        </span>
+                                    </div>
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                        {monthlyLoading ? (
+                            <p className="empty-message">
+                                Loading monthly report...
+                            </p>
+                        ) : monthlyError ? (
+                            <p className="error-message">{monthlyError}</p>
+                        ) : monthlyReport.dailyExpenses.length === 0 ? (
+                            <p className="empty-message">
+                                No transactions for this month.
+                            </p>
+                        ) : (
+                            <div className="monthly-days">
+                                {monthlyReport.dailyExpenses.map((dayObject) => {
+                                    const entry = Object.entries(dayObject || {})[0];
+
+                                    if (!entry) return null;
+
+                                    const [dateKey, dayData] = entry;
+                                    const expenseInfo = dayData?.ExpenseInfo || [];
+
+                                    return (
+                                        <div className="monthly-day-card" key={dateKey}>
+
+                                            <div className="monthly-day-header">
+                                                <h3 className="monthly-day-date">
+                                                    {formatReportDate(dateKey)}
+                                                </h3>
+
+                                                <div className="monthly-day-totals">
+                                                    <span className="day-total day-total-income">
+                                                        <span className="day-total-label">
+                                                            Income
+                                                        </span>
+                                                        +{formatAmount(
+                                                            Math.abs(Number(dayData?.totalCreditOfTheDay) || 0)
+                                                        )}
+                                                    </span>
+
+                                                    <span className="day-total day-total-expense">
+                                                        <span className="day-total-label">
+                                                            Expense
+                                                        </span>
+                                                        -{formatAmount(
+                                                            Math.abs(Number(dayData?.totalDebitOfTheDay) || 0)
+                                                        )}
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            <div className="expense-list">
+                                                {expenseInfo.map((item) => {
+                                                    const isCredit = Number(item.expenseAmount) > 0;
+
+                                                    return (
+                                                        <div className="expense-item" key={item.id}>
+
+                                                            <div className="expense-info">
+                                                                <h3>{item.category}</h3>
+                                                                <p>{item.description}</p>
+                                                            </div>
+
+                                                            <span className={
+                                                                isCredit ? "credit-amount" : "debit-amount"
+                                                            }>
+                                                                {isCredit ? "+" : "-"}
+                                                                {formatAmount(
+                                                                    Math.abs(Number(item.expenseAmount))
+                                                                )}
+                                                            </span>
+
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+
                     </>
                 )}
 

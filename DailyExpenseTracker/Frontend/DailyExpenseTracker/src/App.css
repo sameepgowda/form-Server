@@ -266,9 +266,9 @@ button:disabled {
     display: flex;
     align-items: center;
     gap: 13px;
-    background: white;
+    background: #e6e5ee;
     padding: 17px 20px;
-    border: 1px solid #e9eaf3;
+    border: 1px solid #b1b5d7;
     border-radius: 13px;
     margin-bottom: 28px;
     box-shadow: 0 4px 16px rgba(40, 43, 80, 0.035);
@@ -1739,7 +1739,7 @@ body:has(#cf_checkout:not(:empty))::before {
     flex-wrap: wrap;
     gap: 12px;
     padding: 16px 22px;
-    background: linear-gradient(120deg, #f8f6ff, #f1eeff);
+    background: #e6e5ee;
     border-bottom: 1px solid #ebe7ff;
 }
 
@@ -2067,4 +2067,275 @@ body:has(#cf_checkout:not(:empty))::before {
 }
 
 
+/* Pagination (daily lists and monthly report) */
+
+.pagination {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 18px;
+    padding-top: 16px;
+    border-top: 1px dashed #e4e0ff;
+}
+
+.pagination-info {
+    font-size: 13px;
+    font-weight: 600;
+    color: #8589a2;
+}
+
+.pagination-controls {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.pagination-button {
+    min-width: 38px;
+    height: 38px;
+    padding: 0 10px;
+    border: 1px solid #e4e0ff;
+    border-radius: 10px;
+    background: white;
+    color: #5b45d6;
+    font-size: 14px;
+    font-weight: 650;
+}
+
+.pagination-button:hover:not(:disabled):not(.active) {
+    background: #f1edff;
+    border-color: #cfc8ff;
+    transform: translateY(-1px);
+}
+
+.pagination-button.active {
+    background: linear-gradient(120deg, #7057ed, #9275ff);
+    border-color: transparent;
+    color: white;
+    box-shadow: 0 6px 14px rgba(112, 87, 237, 0.3);
+    cursor: default;
+}
+
+.pagination-button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.pagination-arrow {
+    padding-bottom: 3px;
+    font-size: 22px;
+    line-height: 1;
+}
+
+.pagination-ellipsis {
+    min-width: 24px;
+    text-align: center;
+    font-weight: 700;
+    color: #a3a6bd;
+}
+
+/* Monthly: the pager sits in its own card under the day cards */
+
+.monthly-days + .pagination {
+    margin-top: 16px;
+    padding: 12px 16px;
+    background: white;
+    border: 1px solid #e4e0ff;
+    border-radius: 14px;
+    box-shadow: 0 4px 16px rgba(41, 36, 92, 0.05);
+}
+
+/* Mobile */
+
+@media (max-width: 600px) {
+    .pagination {
+        justify-content: center;
+    }
+
+    .pagination-info {
+        width: 100%;
+        text-align: center;
+    }
+}
+
+@media (max-width: 480px) {
+    .pagination-button {
+        min-width: 34px;
+        height: 34px;
+    }
+}
+
+/* Daily view: a section can now appear on its own, so give each one
+   its own dot colour instead of relying on :first-of-type / :last-of-type */
+
+.home-content .transaction-section.income-section h2::before {
+    background: #20b985;
+    box-shadow: 0 0 0 5px rgba(32, 185, 133, 0.12);
+}
+
+.home-content .transaction-section.expense-section h2::before {
+    background: #f06b78;
+    box-shadow: 0 0 0 5px rgba(240, 107, 120, 0.12);
+}
+
+/* Daily: the pager sits in its own card under the sections */
+
+.transaction-section ~ .pagination {
+    margin-top: 0;
+    padding: 12px 16px;
+    background: white;
+    border: 1px solid #e4e0ff;
+    border-radius: 14px;
+    box-shadow: 0 4px 16px rgba(41, 36, 92, 0.05);
+}
+
+/* Monthly view: separate Income / Expenses lists inside each day card,
+   each with its own pager, and compact (low height) rows */
+
+/* ---------- Day card: compact date bar ---------- */
+
+.monthly-day-card .monthly-day-header {
+    padding: 10px 18px;
+}
+
+.monthly-day-card .monthly-day-date {
+    font-size: 16px;
+}
+
+.monthly-day-card .day-total {
+    padding: 4px 11px;
+    font-size: 13px;
+}
+
+.monthly-day-card .day-total-label {
+    font-size: 10px;
+}
+
+/* ---------- Income / Expenses lists inside a day ---------- */
+
+.monthly-day-card .day-entries {
+    padding: 10px 16px 12px;
+}
+
+.monthly-day-card .day-entries + .day-entries {
+    padding-top: 10px;
+    border-top: 1px dashed #e4e0ff;
+}
+
+.monthly-day-card .day-entries .expense-list {
+    gap: 6px;
+    padding: 0;
+}
+
+/* Small coloured heading for each list */
+
+.day-entries-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    font-size: 11px;
+    font-weight: 750;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+}
+
+.day-entries-title::before {
+    content: "";
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+}
+
+.day-entries-credit .day-entries-title {
+    color: #119b70;
+}
+
+.day-entries-credit .day-entries-title::before {
+    background: #20b985;
+    box-shadow: 0 0 0 4px rgba(32, 185, 133, 0.12);
+}
+
+.day-entries-debit .day-entries-title {
+    color: #e05265;
+}
+
+.day-entries-debit .day-entries-title::before {
+    background: #f06b78;
+    box-shadow: 0 0 0 4px rgba(240, 107, 120, 0.12);
+}
+
+/* ---------- Compact rows ---------- */
+
+.monthly-day-card .expense-item.monthly-entry {
+    flex-wrap: nowrap;
+    gap: 10px;
+    padding: 6px 12px;
+    border-radius: 8px;
+}
+
+.monthly-day-card .monthly-entry .expense-info h3 {
+    font-size: 13px;
+    line-height: 1.25;
+}
+
+.monthly-day-card .monthly-entry .expense-info p {
+    margin-top: 1px;
+    font-size: 11.5px;
+    line-height: 1.25;
+}
+
+.monthly-day-card .monthly-entry .credit-amount,
+.monthly-day-card .monthly-entry .debit-amount {
+    padding: 3px 9px;
+    border-radius: 6px;
+    font-size: 12.5px;
+}
+
+/* ---------- Compact pager inside a day ---------- */
+
+.monthly-day-card .day-entries .pagination {
+    gap: 8px;
+    margin-top: 8px;
+    padding-top: 8px;
+}
+
+.monthly-day-card .day-entries .pagination-info {
+    font-size: 11.5px;
+}
+
+.monthly-day-card .day-entries .pagination-controls {
+    gap: 4px;
+}
+
+.monthly-day-card .day-entries .pagination-button {
+    min-width: 28px;
+    height: 28px;
+    padding: 0 7px;
+    border-radius: 8px;
+    font-size: 12px;
+}
+
+.monthly-day-card .day-entries .pagination-arrow {
+    padding-bottom: 2px;
+    font-size: 18px;
+}
+
+/* ---------- Mobile ---------- */
+
+@media (max-width: 480px) {
+    .monthly-day-card .monthly-day-header {
+        padding: 9px 12px;
+    }
+
+    .monthly-day-card .day-entries {
+        padding: 8px 10px 10px;
+    }
+
+    .monthly-day-card .expense-item.monthly-entry {
+        padding: 6px 10px;
+    }
+}
 

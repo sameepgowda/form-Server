@@ -23,6 +23,137 @@ function formatReportDate(dateString) {
     return `${day}-${MONTH_NAMES[month - 1]}-${year}`;
 }
 
+const PAGE_SIZE = 5;
+const MONTHLY_PAGE_SIZE = 3;
+const DAY_ENTRIES_PAGE_SIZE = 5;
+
+function Pagination({ currentPage, totalPages, totalItems, pageSize, itemLabel, onPageChange }) {
+    if (totalPages <= 1) return null;
+
+    const firstItem = (currentPage - 1) * pageSize + 1;
+    const lastItem = Math.min(currentPage * pageSize, totalItems);
+
+    // Page numbers with ellipses, e.g. 1 … 4 5 6 … 12
+    const pageNumbers = [];
+    for (let i = 1; i <= totalPages; i++) {
+        if (i === 1 || i === totalPages || Math.abs(i - currentPage) <= 1) {
+            pageNumbers.push(i);
+        } else if (pageNumbers[pageNumbers.length - 1] !== 'ellipsis') {
+            pageNumbers.push('ellipsis');
+        }
+    }
+
+    return (
+        <div className="pagination">
+
+            <span className="pagination-info">
+                Showing {firstItem}–{lastItem} of {totalItems} {itemLabel}
+            </span>
+
+            <div className="pagination-controls">
+
+                <button
+                    type="button"
+                    className="pagination-button pagination-arrow"
+                    onClick={() => onPageChange(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    aria-label="Previous page"
+                >
+                    &#8249;
+                </button>
+
+                {pageNumbers.map((page, index) =>
+                    page === 'ellipsis' ? (
+                        <span key={`ellipsis-${index}`} className="pagination-ellipsis">
+                            …
+                        </span>
+                    ) : (
+                        <button
+                            key={page}
+                            type="button"
+                            className={`pagination-button${page === currentPage ? ' active' : ''}`}
+                            onClick={() => onPageChange(page)}
+                            aria-current={page === currentPage ? 'page' : undefined}
+                        >
+                            {page}
+                        </button>
+                    )
+                )}
+
+                <button
+                    type="button"
+                    className="pagination-button pagination-arrow"
+                    onClick={() => onPageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                    aria-label="Next page"
+                >
+                    &#8250;
+                </button>
+
+            </div>
+
+        </div>
+    );
+}
+
+// One list (income or expenses) inside a day card of the monthly report,
+// with its own pagination (max DAY_ENTRIES_PAGE_SIZE rows per page)
+function DayEntries({ title, entries, isCredit, formatAmount }) {
+    const [page, setPage] = useState(1);
+
+    // Nothing to show: don't display this list at all
+    if (entries.length === 0) return null;
+
+    const totalPages = Math.ceil(entries.length / DAY_ENTRIES_PAGE_SIZE);
+    const currentPage = Math.min(page, totalPages);
+    const pagedEntries = entries.slice(
+        (currentPage - 1) * DAY_ENTRIES_PAGE_SIZE,
+        currentPage * DAY_ENTRIES_PAGE_SIZE
+    );
+
+    return (
+        <div className={`day-entries ${isCredit ? 'day-entries-credit' : 'day-entries-debit'}`}>
+
+            <h4 className="day-entries-title">{title}</h4>
+
+            <div className="expense-list">
+                {pagedEntries.map((item) => (
+                    <div
+                        className={`expense-item monthly-entry ${isCredit ? 'monthly-entry-credit' : 'monthly-entry-debit'}`}
+                        key={item.id}
+                    >
+
+                        <div className="expense-info">
+                            <h3>{item.category}</h3>
+                            <p>{item.description}</p>
+                        </div>
+
+                        <span className={
+                            isCredit ? "credit-amount" : "debit-amount"
+                        }>
+                            {isCredit ? "+" : "-"}
+                            {formatAmount(
+                                Math.abs(Number(item.expenseAmount))
+                            )}
+                        </span>
+
+                    </div>
+                ))}
+            </div>
+
+            <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                totalItems={entries.length}
+                pageSize={DAY_ENTRIES_PAGE_SIZE}
+                itemLabel={isCredit ? 'income entries' : 'expenses'}
+                onPageChange={setPage}
+            />
+
+        </div>
+    );
+}
+
 function Home() {
     const [selectedDate, setSelectedDate] = useState(getTodayDate());
 
@@ -77,6 +208,9 @@ function Home() {
     const [monthlyLoading, setMonthlyLoading] = useState(true);
     const [monthlyError, setMonthlyError] = useState('');
     const monthlyRequestId = useRef(0);
+
+    const [dailyPage, setDailyPage] = useState(1);
+    const [monthlyPage, setMonthlyPage] = useState(1);
 
     // Read premium status from sessionStorage before the page renders
     const isPremium = sessionStorage.getItem("isPremium") === "true";
@@ -317,6 +451,15 @@ function Home() {
             getMonthlyReport();
         }
     }, [activeTab, selectedMonth]);
+
+    // Go back to the first page when the date or month changes
+    useEffect(() => {
+        setDailyPage(1);
+    }, [selectedDate]);
+
+    useEffect(() => {
+        setMonthlyPage(1);
+    }, [selectedMonth]);
 
     // Handle date picker changes
     const handleDateChange = (e) => {
@@ -586,6 +729,31 @@ function Home() {
         );
     };
 
+    // Income entries come first, then expenses. Each page shows only the entries
+    // that fall inside it, so nothing from the previous page is repeated.
+    const incomeCount = transactions.incomeData.length;
+    const allDailyCount = incomeCount + transactions.expenseData.length;
+    const dailyTotalPages = Math.max(1, Math.ceil(allDailyCount / PAGE_SIZE));
+    const currentDailyPage = Math.min(dailyPage, dailyTotalPages);
+    const dailyStart = (currentDailyPage - 1) * PAGE_SIZE;
+    const dailyEnd = dailyStart + PAGE_SIZE;
+
+    const pagedIncome = transactions.incomeData.slice(dailyStart, dailyEnd);
+    const pagedExpenses = transactions.expenseData.slice(
+        Math.max(0, dailyStart - incomeCount),
+        Math.max(0, dailyEnd - incomeCount)
+    );
+
+    const monthlyTotalPages = Math.max(
+        1,
+        Math.ceil(monthlyReport.dailyExpenses.length / MONTHLY_PAGE_SIZE)
+    );
+    const currentMonthlyPage = Math.min(monthlyPage, monthlyTotalPages);
+    const pagedMonthlyDays = monthlyReport.dailyExpenses.slice(
+        (currentMonthlyPage - 1) * MONTHLY_PAGE_SIZE,
+        currentMonthlyPage * MONTHLY_PAGE_SIZE
+    );
+
     return (
         <div className="home-container">
 
@@ -633,25 +801,27 @@ function Home() {
 
             <main className="home-content">
 
-                {/* View tabs */}
-                <div className="view-tabs" role="tablist">
-                    {[
-                        { key: 'daily', label: 'Daily' },
-                        { key: 'monthly', label: 'Monthly' },
-                        { key: 'yearly', label: 'Yearly' }
-                    ].map((tab) => (
-                        <button
-                            key={tab.key}
-                            type="button"
-                            role="tab"
-                            aria-selected={activeTab === tab.key}
-                            className={`view-tab${activeTab === tab.key ? ' active' : ''}`}
-                            onClick={() => setActiveTab(tab.key)}
-                        >
-                            {tab.label}
-                        </button>
-                    ))}
-                </div>
+                {/* View tabs (monthly and yearly are for premium users only) */}
+                {isPremium && (
+                    <div className="view-tabs" role="tablist">
+                        {[
+                            { key: 'daily', label: 'Daily' },
+                            { key: 'monthly', label: 'Monthly' },
+                            { key: 'yearly', label: 'Yearly' }
+                        ].map((tab) => (
+                            <button
+                                key={tab.key}
+                                type="button"
+                                role="tab"
+                                aria-selected={activeTab === tab.key}
+                                className={`view-tab${activeTab === tab.key ? ' active' : ''}`}
+                                onClick={() => setActiveTab(tab.key)}
+                            >
+                                {tab.label}
+                            </button>
+                        ))}
+                    </div>
+                )}
 
                 {activeTab === 'daily' && (
                     <>
@@ -759,25 +929,36 @@ function Home() {
                             </p>
                         ) : error ? (
                             <p className="error-message">{error}</p>
+                        ) : allDailyCount === 0 ? (
+                            <p className="empty-message">
+                                No transactions for this date.
+                            </p>
                         ) : (
                             <>
-                                <section className="transaction-section">
-                                    <h2>Income</h2>
+                                {pagedIncome.length > 0 && (
+                                    <section className="transaction-section income-section">
+                                        <h2>Income</h2>
 
-                                    {renderTransactions(
-                                        transactions.incomeData,
-                                        true
-                                    )}
-                                </section>
+                                        {renderTransactions(pagedIncome, true)}
+                                    </section>
+                                )}
 
-                                <section className="transaction-section">
-                                    <h2>Expenses</h2>
+                                {pagedExpenses.length > 0 && (
+                                    <section className="transaction-section expense-section">
+                                        <h2>Expenses</h2>
 
-                                    {renderTransactions(
-                                        transactions.expenseData,
-                                        false
-                                    )}
-                                </section>
+                                        {renderTransactions(pagedExpenses, false)}
+                                    </section>
+                                )}
+
+                                <Pagination
+                                    currentPage={currentDailyPage}
+                                    totalPages={dailyTotalPages}
+                                    totalItems={allDailyCount}
+                                    pageSize={PAGE_SIZE}
+                                    itemLabel="transactions"
+                                    onPageChange={setDailyPage}
+                                />
                             </>
                         )}
 
@@ -833,13 +1014,13 @@ function Home() {
 
                             </div>
 
-                            <div className="daily-summary">
+                            <div className="daily-summary monthly-summary">
 
                                 <div className="summary-card summary-income">
                                     <span className="summary-icon">↑</span>
                                     <div className="summary-text">
                                         <span className="summary-label">
-                                            Monthly Income
+                                            Total Income
                                         </span>
                                         <span className="summary-amount">
                                             +{formatAmount(
@@ -853,7 +1034,7 @@ function Home() {
                                     <span className="summary-icon">↓</span>
                                     <div className="summary-text">
                                         <span className="summary-label">
-                                            Monthly Expense
+                                            Total Expense
                                         </span>
                                         <span className="summary-amount">
                                             -{formatAmount(
@@ -878,74 +1059,79 @@ function Home() {
                                 No transactions for this month.
                             </p>
                         ) : (
-                            <div className="monthly-days">
-                                {monthlyReport.dailyExpenses.map((dayObject) => {
-                                    const entry = Object.entries(dayObject || {})[0];
+                            <>
+                                <div className="monthly-days">
+                                    {pagedMonthlyDays.map((dayObject) => {
+                                        const entry = Object.entries(dayObject || {})[0];
 
-                                    if (!entry) return null;
+                                        if (!entry) return null;
 
-                                    const [dateKey, dayData] = entry;
-                                    const expenseInfo = dayData?.ExpenseInfo || [];
+                                        const [dateKey, dayData] = entry;
+                                        const expenseInfo = dayData?.ExpenseInfo || [];
+                                        const incomeEntries = expenseInfo.filter(
+                                            (item) => Number(item.expenseAmount) > 0
+                                        );
+                                        const expenseEntries = expenseInfo.filter(
+                                            (item) => Number(item.expenseAmount) <= 0
+                                        );
 
-                                    return (
-                                        <div className="monthly-day-card" key={dateKey}>
+                                        return (
+                                            <div className="monthly-day-card" key={dateKey}>
 
-                                            <div className="monthly-day-header">
-                                                <h3 className="monthly-day-date">
-                                                    {formatReportDate(dateKey)}
-                                                </h3>
+                                                <div className="monthly-day-header">
+                                                    <h3 className="monthly-day-date">
+                                                        {formatReportDate(dateKey)}
+                                                    </h3>
 
-                                                <div className="monthly-day-totals">
-                                                    <span className="day-total day-total-income">
-                                                        <span className="day-total-label">
-                                                            Income
-                                                        </span>
-                                                        +{formatAmount(
-                                                            Math.abs(Number(dayData?.totalCreditOfTheDay) || 0)
-                                                        )}
-                                                    </span>
-
-                                                    <span className="day-total day-total-expense">
-                                                        <span className="day-total-label">
-                                                            Expense
-                                                        </span>
-                                                        -{formatAmount(
-                                                            Math.abs(Number(dayData?.totalDebitOfTheDay) || 0)
-                                                        )}
-                                                    </span>
-                                                </div>
-                                            </div>
-
-                                            <div className="expense-list">
-                                                {expenseInfo.map((item) => {
-                                                    const isCredit = Number(item.expenseAmount) > 0;
-
-                                                    return (
-                                                        <div className="expense-item" key={item.id}>
-
-                                                            <div className="expense-info">
-                                                                <h3>{item.category}</h3>
-                                                                <p>{item.description}</p>
-                                                            </div>
-
-                                                            <span className={
-                                                                isCredit ? "credit-amount" : "debit-amount"
-                                                            }>
-                                                                {isCredit ? "+" : "-"}
-                                                                {formatAmount(
-                                                                    Math.abs(Number(item.expenseAmount))
-                                                                )}
+                                                    <div className="monthly-day-totals">
+                                                        <span className="day-total day-total-income">
+                                                            <span className="day-total-label">
+                                                                Income
                                                             </span>
+                                                            +{formatAmount(
+                                                                Math.abs(Number(dayData?.totalCreditOfTheDay) || 0)
+                                                            )}
+                                                        </span>
 
-                                                        </div>
-                                                    );
-                                                })}
+                                                        <span className="day-total day-total-expense">
+                                                            <span className="day-total-label">
+                                                                Expense
+                                                            </span>
+                                                            -{formatAmount(
+                                                                Math.abs(Number(dayData?.totalDebitOfTheDay) || 0)
+                                                            )}
+                                                        </span>
+                                                    </div>
+                                                </div>
+
+                                                <DayEntries
+                                                    title="Income"
+                                                    entries={incomeEntries}
+                                                    isCredit={true}
+                                                    formatAmount={formatAmount}
+                                                />
+
+                                                <DayEntries
+                                                    title="Expenses"
+                                                    entries={expenseEntries}
+                                                    isCredit={false}
+                                                    formatAmount={formatAmount}
+                                                />
+
                                             </div>
+                                        );
+                                    })}
+                                </div>
 
-                                        </div>
-                                    );
-                                })}
-                            </div>
+                                <Pagination
+                                    currentPage={currentMonthlyPage}
+                                    totalPages={monthlyTotalPages}
+                                    totalItems={monthlyReport.dailyExpenses.length}
+                                    pageSize={MONTHLY_PAGE_SIZE}
+                                    itemLabel="days"
+                                    onPageChange={setMonthlyPage}
+                                />
+                            </>
                         )}
 
                     </>

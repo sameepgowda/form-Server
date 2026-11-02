@@ -289,10 +289,11 @@ const getMonthlyReport = async (req,res)=>{
 }
 
 const getYearlyReport = async (req,res)=>{
-    if(req.body.UserId && req.body.year){
+    if(req.UserId && req.body.year){
         
         try{
-            const {UserId,year} = req.body;
+            const {year} = req.body;
+            const UserId = req.UserId;
         const startDate = `${String(req.body.year)}-01-01`;
         const endDate = `${String(req.body.year)}-12-31`;
     
@@ -304,42 +305,10 @@ where:{UserId,date:{[Op.gte]:startDate,[Op.lte]:endDate},expenseAmount:{[Op.lt]:
   const monthlyCredit = await ExpenseData.findAll({attributes:[[fn("MONTH",col("date")),"month"],[fn("SUM", col("expenseAmount") ),"totalCredit"]],
    
 where:{UserId,date:{[Op.gte]:startDate,[Op.lte]:endDate},expenseAmount:{[Op.gt]:0}},group:[fn("MONTH",col("date"))],order:[[fn("MONTH",col("date")),"desc"]],raw:true});
-//   console.log(monthlyExpenses);
-const monthlyBalances = await sequelize.query(`
-    SELECT month, closingBalance
-    FROM (
-        SELECT
-            MONTH(date) AS month,
-            date,
-            closingBalance,
-            ROW_NUMBER() OVER (
-                PARTITION BY YEAR(date), MONTH(date)
-                ORDER BY date DESC
-            ) AS rn
-        FROM DailyBalance
-        WHERE UserId = :UserId
-          AND date >= :startDate
-          AND date < :endDate
-    ) AS monthly
-    WHERE rn = 1
-    ORDER BY month DESC
-`, {
-    replacements: { UserId, startDate, endDate },
-    type: QueryTypes.SELECT
-});
 
-console.log("mothlyBalance",monthlyBalances);
-let responseArr = [];
-if(monthlyBalances.length>0){
-    responseArr = monthlyBalances.map((obj)=>{
-        const expense = monthlyExpense.find(x=>x.month==obj.month)||{totalExpense:0};
-        const credit = monthlyCredit.find(x=>x.month==obj.month)||{totalCredit:0};
-        return{...obj,totalExpense:expense.totalExpense,totalCredit:credit.totalCredit}
-    })
-}
+const totalExpenseOftheYear = monthlyExpense.reduce((accum,obj)=>accum+obj.totalExpense,0);
 
-res.status(200).json({monthlyReport:responseArr})
-
+const totalIncomeOftheYear = monthlyCredit.reduce((accum,obj)=>accum+obj.totalCredit,0);
 
 
 }catch(err){

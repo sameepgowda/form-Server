@@ -18,17 +18,41 @@ const MONTH_NAMES = [
 
 // Convert "2026-11-01" into "1-Nov-2026"
 function formatReportDate(dateString) {
-    const [year, month, day] = dateString.split('-').map(Number);
+    const [year, month, day] = String(dateString).slice(0, 10).split('-').map(Number);
+
+    if (!year || !month || !day) return String(dateString);
 
     return `${day}-${MONTH_NAMES[month - 1]}-${year}`;
 }
 
-const PAGE_SIZE = 5;
-const MONTHLY_PAGE_SIZE = 3;
-const DAY_ENTRIES_PAGE_SIZE = 5;
+// Rows-per-page choices offered in the dropdown
+const DAILY_PAGE_SIZE_OPTIONS = [3, 5, 10, 15, 20];
+const MONTHLY_PAGE_SIZE_OPTIONS = [10, 15, 20, 30];
 
-function Pagination({ currentPage, totalPages, totalItems, pageSize, itemLabel, onPageChange }) {
-    if (totalPages <= 1) return null;
+// Default rows per page for each view
+const DEFAULT_DAILY_PAGE_SIZE = 5;
+const DEFAULT_MONTHLY_PAGE_SIZE = 10;
+
+function Pagination({
+    currentPage,
+    totalPages,
+    totalItems,
+    pageSize,
+    itemLabel,
+    onPageChange,
+    pageSizeOptions,
+    onPageSizeChange
+}) {
+    const hasSizeSelector = Boolean(pageSizeOptions && onPageSizeChange);
+
+    // With a rows-per-page dropdown, keep the bar visible whenever there is at
+    // least one item, so the dropdown is always available (the page number
+    // buttons only appear when there is more than one page).
+    if (hasSizeSelector) {
+        if (totalItems === 0) return null;
+    } else if (totalPages <= 1) {
+        return null;
+    }
 
     const firstItem = (currentPage - 1) * pageSize + 1;
     const lastItem = Math.min(currentPage * pageSize, totalItems);
@@ -46,109 +70,74 @@ function Pagination({ currentPage, totalPages, totalItems, pageSize, itemLabel, 
     return (
         <div className="pagination">
 
-            <span className="pagination-info">
-                Showing {firstItem}–{lastItem} of {totalItems} {itemLabel}
-            </span>
+            <div className="pagination-left">
 
-            <div className="pagination-controls">
+                <span className="pagination-info">
+                    Showing {firstItem}–{lastItem} of {totalItems} {itemLabel}
+                </span>
 
-                <button
-                    type="button"
-                    className="pagination-button pagination-arrow"
-                    onClick={() => onPageChange(currentPage - 1)}
-                    disabled={currentPage === 1}
-                    aria-label="Previous page"
-                >
-                    &#8249;
-                </button>
-
-                {pageNumbers.map((page, index) =>
-                    page === 'ellipsis' ? (
-                        <span key={`ellipsis-${index}`} className="pagination-ellipsis">
-                            …
-                        </span>
-                    ) : (
-                        <button
-                            key={page}
-                            type="button"
-                            className={`pagination-button${page === currentPage ? ' active' : ''}`}
-                            onClick={() => onPageChange(page)}
-                            aria-current={page === currentPage ? 'page' : undefined}
+                {hasSizeSelector && (
+                    <label className="pagination-size">
+                        <span className="pagination-size-label">Rows per page</span>
+                        <select
+                            className="pagination-size-select"
+                            value={pageSize}
+                            onChange={(e) => onPageSizeChange(Number(e.target.value))}
                         >
-                            {page}
-                        </button>
-                    )
+                            {pageSizeOptions.map((size) => (
+                                <option key={size} value={size}>
+                                    {size}
+                                </option>
+                            ))}
+                        </select>
+                    </label>
                 )}
 
-                <button
-                    type="button"
-                    className="pagination-button pagination-arrow"
-                    onClick={() => onPageChange(currentPage + 1)}
-                    disabled={currentPage === totalPages}
-                    aria-label="Next page"
-                >
-                    &#8250;
-                </button>
-
             </div>
 
-        </div>
-    );
-}
+            {totalPages > 1 && (
+                <div className="pagination-controls">
 
-// One list (income or expenses) inside a day card of the monthly report,
-// with its own pagination (max DAY_ENTRIES_PAGE_SIZE rows per page)
-function DayEntries({ title, entries, isCredit, formatAmount }) {
-    const [page, setPage] = useState(1);
-
-    // Nothing to show: don't display this list at all
-    if (entries.length === 0) return null;
-
-    const totalPages = Math.ceil(entries.length / DAY_ENTRIES_PAGE_SIZE);
-    const currentPage = Math.min(page, totalPages);
-    const pagedEntries = entries.slice(
-        (currentPage - 1) * DAY_ENTRIES_PAGE_SIZE,
-        currentPage * DAY_ENTRIES_PAGE_SIZE
-    );
-
-    return (
-        <div className={`day-entries ${isCredit ? 'day-entries-credit' : 'day-entries-debit'}`}>
-
-            <h4 className="day-entries-title">{title}</h4>
-
-            <div className="expense-list">
-                {pagedEntries.map((item) => (
-                    <div
-                        className={`expense-item monthly-entry ${isCredit ? 'monthly-entry-credit' : 'monthly-entry-debit'}`}
-                        key={item.id}
+                    <button
+                        type="button"
+                        className="pagination-button pagination-arrow"
+                        onClick={() => onPageChange(currentPage - 1)}
+                        disabled={currentPage === 1}
+                        aria-label="Previous page"
                     >
+                        &#8249;
+                    </button>
 
-                        <div className="expense-info">
-                            <h3>{item.category}</h3>
-                            <p>{item.description}</p>
-                        </div>
+                    {pageNumbers.map((page, index) =>
+                        page === 'ellipsis' ? (
+                            <span key={`ellipsis-${index}`} className="pagination-ellipsis">
+                                …
+                            </span>
+                        ) : (
+                            <button
+                                key={page}
+                                type="button"
+                                className={`pagination-button${page === currentPage ? ' active' : ''}`}
+                                onClick={() => onPageChange(page)}
+                                aria-current={page === currentPage ? 'page' : undefined}
+                            >
+                                {page}
+                            </button>
+                        )
+                    )}
 
-                        <span className={
-                            isCredit ? "credit-amount" : "debit-amount"
-                        }>
-                            {isCredit ? "+" : "-"}
-                            {formatAmount(
-                                Math.abs(Number(item.expenseAmount))
-                            )}
-                        </span>
+                    <button
+                        type="button"
+                        className="pagination-button pagination-arrow"
+                        onClick={() => onPageChange(currentPage + 1)}
+                        disabled={currentPage === totalPages}
+                        aria-label="Next page"
+                    >
+                        &#8250;
+                    </button>
 
-                    </div>
-                ))}
-            </div>
-
-            <Pagination
-                currentPage={currentPage}
-                totalPages={totalPages}
-                totalItems={entries.length}
-                pageSize={DAY_ENTRIES_PAGE_SIZE}
-                itemLabel={isCredit ? 'income entries' : 'expenses'}
-                onPageChange={setPage}
-            />
+                </div>
+            )}
 
         </div>
     );
@@ -203,7 +192,7 @@ function Home() {
     const [monthlyReport, setMonthlyReport] = useState({
         totalMonthlyIncome: 0,
         totalMonthlyExpense: 0,
-        dailyExpenses: []
+        monthlyExpenseData: []
     });
     const [monthlyLoading, setMonthlyLoading] = useState(true);
     const [monthlyError, setMonthlyError] = useState('');
@@ -211,6 +200,10 @@ function Home() {
 
     const [dailyPage, setDailyPage] = useState(1);
     const [monthlyPage, setMonthlyPage] = useState(1);
+
+    // Rows per page chosen by the user (daily list and monthly table)
+    const [dailyPageSize, setDailyPageSize] = useState(DEFAULT_DAILY_PAGE_SIZE);
+    const [monthlyPageSize, setMonthlyPageSize] = useState(DEFAULT_MONTHLY_PAGE_SIZE);
 
     // Read premium status from sessionStorage before the page renders
     const isPremium = sessionStorage.getItem("isPremium") === "true";
@@ -381,7 +374,7 @@ function Home() {
             setMonthlyReport({
                 totalMonthlyIncome: Number(response.data.totalMonthlyIncome) || 0,
                 totalMonthlyExpense: Number(response.data.totalMonthlyExpense) || 0,
-                dailyExpenses: response.data.dailyExpenses || []
+                monthlyExpenseData: response.data.monthlyExpenseData || []
             });
 
         } catch (err) {
@@ -392,7 +385,7 @@ function Home() {
             setMonthlyReport({
                 totalMonthlyIncome: 0,
                 totalMonthlyExpense: 0,
-                dailyExpenses: []
+                monthlyExpenseData: []
             });
         } finally {
             if (requestId === monthlyRequestId.current) {
@@ -460,6 +453,17 @@ function Home() {
     useEffect(() => {
         setMonthlyPage(1);
     }, [selectedMonth]);
+
+    // Changing rows per page always returns to the first page
+    const handleDailyPageSizeChange = (size) => {
+        setDailyPageSize(size);
+        setDailyPage(1);
+    };
+
+    const handleMonthlyPageSizeChange = (size) => {
+        setMonthlyPageSize(size);
+        setMonthlyPage(1);
+    };
 
     // Handle date picker changes
     const handleDateChange = (e) => {
@@ -733,10 +737,10 @@ function Home() {
     // that fall inside it, so nothing from the previous page is repeated.
     const incomeCount = transactions.incomeData.length;
     const allDailyCount = incomeCount + transactions.expenseData.length;
-    const dailyTotalPages = Math.max(1, Math.ceil(allDailyCount / PAGE_SIZE));
+    const dailyTotalPages = Math.max(1, Math.ceil(allDailyCount / dailyPageSize));
     const currentDailyPage = Math.min(dailyPage, dailyTotalPages);
-    const dailyStart = (currentDailyPage - 1) * PAGE_SIZE;
-    const dailyEnd = dailyStart + PAGE_SIZE;
+    const dailyStart = (currentDailyPage - 1) * dailyPageSize;
+    const dailyEnd = dailyStart + dailyPageSize;
 
     const pagedIncome = transactions.incomeData.slice(dailyStart, dailyEnd);
     const pagedExpenses = transactions.expenseData.slice(
@@ -744,14 +748,20 @@ function Home() {
         Math.max(0, dailyEnd - incomeCount)
     );
 
+    // Savings = income + expense (the monthly expense total is already negative)
+    const monthlySavings =
+        monthlyReport.totalMonthlyIncome + monthlyReport.totalMonthlyExpense;
+
+    // Monthly table: one flat list of rows, paginated
+    const monthlyRows = monthlyReport.monthlyExpenseData;
     const monthlyTotalPages = Math.max(
         1,
-        Math.ceil(monthlyReport.dailyExpenses.length / MONTHLY_PAGE_SIZE)
+        Math.ceil(monthlyRows.length / monthlyPageSize)
     );
     const currentMonthlyPage = Math.min(monthlyPage, monthlyTotalPages);
-    const pagedMonthlyDays = monthlyReport.dailyExpenses.slice(
-        (currentMonthlyPage - 1) * MONTHLY_PAGE_SIZE,
-        currentMonthlyPage * MONTHLY_PAGE_SIZE
+    const pagedMonthlyRows = monthlyRows.slice(
+        (currentMonthlyPage - 1) * monthlyPageSize,
+        currentMonthlyPage * monthlyPageSize
     );
 
     return (
@@ -955,9 +965,11 @@ function Home() {
                                     currentPage={currentDailyPage}
                                     totalPages={dailyTotalPages}
                                     totalItems={allDailyCount}
-                                    pageSize={PAGE_SIZE}
+                                    pageSize={dailyPageSize}
                                     itemLabel="transactions"
                                     onPageChange={setDailyPage}
+                                    pageSizeOptions={DAILY_PAGE_SIZE_OPTIONS}
+                                    onPageSizeChange={handleDailyPageSizeChange}
                                 />
                             </>
                         )}
@@ -1044,6 +1056,21 @@ function Home() {
                                     </div>
                                 </div>
 
+                                <div
+                                    className={`summary-card summary-savings${monthlySavings < 0 ? ' summary-savings-negative' : ''}`}
+                                >
+                                    <span className="summary-icon">₹</span>
+                                    <div className="summary-text">
+                                        <span className="summary-label">
+                                            Savings
+                                        </span>
+                                        <span className="summary-amount">
+                                            {monthlySavings < 0 ? "-" : "+"}
+                                            {formatAmount(Math.abs(monthlySavings))}
+                                        </span>
+                                    </div>
+                                </div>
+
                             </div>
 
                         </div>
@@ -1054,84 +1081,85 @@ function Home() {
                             </p>
                         ) : monthlyError ? (
                             <p className="error-message">{monthlyError}</p>
-                        ) : monthlyReport.dailyExpenses.length === 0 ? (
+                        ) : monthlyRows.length === 0 ? (
                             <p className="empty-message">
                                 No transactions for this month.
                             </p>
                         ) : (
-                            <>
-                                <div className="monthly-days">
-                                    {pagedMonthlyDays.map((dayObject) => {
-                                        const entry = Object.entries(dayObject || {})[0];
+                            <div className="monthly-table-card">
 
-                                        if (!entry) return null;
+                                <div className="monthly-table-wrapper">
+                                    <table className="monthly-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Date</th>
+                                                <th>Description</th>
+                                                <th>Category</th>
+                                                <th className="amount-column">Expense</th>
+                                                <th className="amount-column">Income</th>
+                                            </tr>
+                                        </thead>
 
-                                        const [dateKey, dayData] = entry;
-                                        const expenseInfo = dayData?.ExpenseInfo || [];
-                                        const incomeEntries = expenseInfo.filter(
-                                            (item) => Number(item.expenseAmount) > 0
-                                        );
-                                        const expenseEntries = expenseInfo.filter(
-                                            (item) => Number(item.expenseAmount) <= 0
-                                        );
+                                        <tbody>
+                                            {pagedMonthlyRows.map((item) => {
+                                                const amount = Number(item.expenseAmount) || 0;
+                                                // Negative amount = expense, otherwise income
+                                                const isExpense = amount < 0;
 
-                                        return (
-                                            <div className="monthly-day-card" key={dateKey}>
+                                                return (
+                                                    <tr key={item.id}>
+                                                        <td className="monthly-date-cell">
+                                                            {formatReportDate(item.date)}
+                                                        </td>
 
-                                                <div className="monthly-day-header">
-                                                    <h3 className="monthly-day-date">
-                                                        {formatReportDate(dateKey)}
-                                                    </h3>
+                                                        <td className="monthly-description-cell" title={item.description}>
+                                                            {item.description}
+                                                        </td>
 
-                                                    <div className="monthly-day-totals">
-                                                        <span className="day-total day-total-income">
-                                                            <span className="day-total-label">
-                                                                Income
+                                                        <td>
+                                                            <span className="category-chip">
+                                                                {item.category}
                                                             </span>
-                                                            +{formatAmount(
-                                                                Math.abs(Number(dayData?.totalCreditOfTheDay) || 0)
+                                                        </td>
+
+                                                        <td className="amount-column">
+                                                            {isExpense ? (
+                                                                <span className="table-amount table-amount-expense">
+                                                                    -{formatAmount(Math.abs(amount))}
+                                                                </span>
+                                                            ) : (
+                                                                <span className="table-amount-empty">—</span>
                                                             )}
-                                                        </span>
+                                                        </td>
 
-                                                        <span className="day-total day-total-expense">
-                                                            <span className="day-total-label">
-                                                                Expense
-                                                            </span>
-                                                            -{formatAmount(
-                                                                Math.abs(Number(dayData?.totalDebitOfTheDay) || 0)
+                                                        <td className="amount-column">
+                                                            {!isExpense ? (
+                                                                <span className="table-amount table-amount-income">
+                                                                    +{formatAmount(Math.abs(amount))}
+                                                                </span>
+                                                            ) : (
+                                                                <span className="table-amount-empty">—</span>
                                                             )}
-                                                        </span>
-                                                    </div>
-                                                </div>
-
-                                                <DayEntries
-                                                    title="Income"
-                                                    entries={incomeEntries}
-                                                    isCredit={true}
-                                                    formatAmount={formatAmount}
-                                                />
-
-                                                <DayEntries
-                                                    title="Expenses"
-                                                    entries={expenseEntries}
-                                                    isCredit={false}
-                                                    formatAmount={formatAmount}
-                                                />
-
-                                            </div>
-                                        );
-                                    })}
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
                                 </div>
 
                                 <Pagination
                                     currentPage={currentMonthlyPage}
                                     totalPages={monthlyTotalPages}
-                                    totalItems={monthlyReport.dailyExpenses.length}
-                                    pageSize={MONTHLY_PAGE_SIZE}
-                                    itemLabel="days"
+                                    totalItems={monthlyRows.length}
+                                    pageSize={monthlyPageSize}
+                                    itemLabel="transactions"
                                     onPageChange={setMonthlyPage}
+                                    pageSizeOptions={MONTHLY_PAGE_SIZE_OPTIONS}
+                                    onPageSizeChange={handleMonthlyPageSizeChange}
                                 />
-                            </>
+
+                            </div>
                         )}
 
                     </>

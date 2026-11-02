@@ -273,7 +273,7 @@ const getMonthlyReport = async (req,res)=>{
     }
 
     const responseObj = {
-        totalMonthlyIncome,totalMonthlyExpense, dailyExpenses
+        totalMonthlyIncome,totalMonthlyExpense, monthlyExpenseData
        }
     res.status(200).json(responseObj);
 
@@ -289,11 +289,11 @@ const getMonthlyReport = async (req,res)=>{
 }
 
 const getYearlyReport = async (req,res)=>{
-    if(req.UserId && req.body.year){
+    if(req.body.UserId && req.body.year){
         
         try{
-            const {year} = req.body;
-            const UserId = req.UserId;
+            const {year,UserId} = req.body;
+            // const UserId = req.UserId;
         const startDate = `${String(req.body.year)}-01-01`;
         const endDate = `${String(req.body.year)}-12-31`;
     
@@ -306,9 +306,13 @@ where:{UserId,date:{[Op.gte]:startDate,[Op.lte]:endDate},expenseAmount:{[Op.lt]:
    
 where:{UserId,date:{[Op.gte]:startDate,[Op.lte]:endDate},expenseAmount:{[Op.gt]:0}},group:[fn("MONTH",col("date"))],order:[[fn("MONTH",col("date")),"desc"]],raw:true});
 
-const totalExpenseOftheYear = monthlyExpense.reduce((accum,obj)=>accum+obj.totalExpense,0);
+const totalExpenseOftheYear = -(monthlyExpense.reduce((accum,obj)=>accum+Number(obj.totalExpense),0));
 
-const totalIncomeOftheYear = monthlyCredit.reduce((accum,obj)=>accum+obj.totalCredit,0);
+const totalIncomeOftheYear = monthlyCredit.reduce((accum,obj)=>accum+Number(obj.totalCredit),0);
+
+const totalSavings = totalIncomeOftheYear - totalExpenseOftheYear;
+
+return res.status(200).json({monthlyExpense,monthlyCredit,totalExpenseOftheYear,totalIncomeOftheYear,totalSavings})
 
 
 }catch(err){

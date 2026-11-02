@@ -19,7 +19,7 @@ router.delete("/deleteExpense/:id", authMiddleware, expenseController.deleteExpe
 
 router.post("/bulkDeleteExpense",authMiddleware, expenseController.bulkDeleteExpense);
 
-router.post("/getYearlyReport",authMiddleware,expenseController.getYearlyReport);
+router.post("/getYearlyReport",expenseController.getYearlyReport);
 
 
 export default router;

@@ -2339,3 +2339,349 @@ body:has(#cf_checkout:not(:empty))::before {
     }
 }
 
+
+
+/* ========================================
+   Rows-per-page dropdown (daily + monthly pagination)
+   Append this to the end of your existing CSS file.
+======================================== */
+
+/* Left side of the pager: "Showing x–y of z" + rows-per-page dropdown */
+.pagination-left {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px 18px;
+}
+
+.pagination-size {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+}
+
+.pagination-size-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #8589a2;
+    white-space: nowrap;
+}
+
+.pagination-size-select {
+    height: 38px;
+    min-width: 68px;
+    padding: 0 30px 0 12px;
+    border: 1px solid #e4e0ff;
+    border-radius: 10px;
+    background-color: white;
+    color: #5b45d6;
+    font-size: 14px;
+    font-weight: 650;
+    cursor: pointer;
+    outline: none;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path d='M1 1.5l5 5 5-5' fill='none' stroke='%235b45d6' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 11px center;
+    transition: all 0.2s ease;
+}
+
+.pagination-size-select:hover {
+    background-color: #f1edff;
+    border-color: #cfc8ff;
+}
+
+.pagination-size-select:focus {
+    border-color: #8874f5;
+    box-shadow: 0 0 0 3px rgba(136, 116, 245, 0.15);
+}
+
+/* Mobile */
+@media (max-width: 600px) {
+    .pagination-left {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+@media (max-width: 480px) {
+    .pagination-size-select {
+        height: 34px;
+    }
+}
+
+/* ========================================
+   Monthly report table
+   Append this to the end of your existing CSS file.
+   (The old .monthly-days / .monthly-day-card / .day-entries rules are no
+   longer used and can be deleted if you like.)
+======================================== */
+
+.monthly-table-card {
+    background: white;
+    border: 1px solid #e9eaf3;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 5px 22px rgba(40, 43, 80, 0.045);
+}
+
+/* Horizontal scroll on small screens instead of squashing columns */
+.monthly-table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.monthly-table {
+    width: 100%;
+    min-width: 680px;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+/* ---------- Header ---------- */
+
+.monthly-table thead th {
+    padding: 11px 16px;
+    background: linear-gradient(120deg, #171b3b, #29245c, #44358a);
+    color: #e4e2ff;
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    text-align: left;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.monthly-table thead th.amount-column {
+    text-align: right;
+}
+
+/* ---------- Thin rows ---------- */
+
+.monthly-table tbody td {
+    padding: 7px 16px;
+    border-bottom: 1px solid #f0f0f6;
+    font-size: 13px;
+    line-height: 1.3;
+    color: #333650;
+    vertical-align: middle;
+    transition: background 0.2s ease;
+}
+
+.monthly-table tbody tr:nth-child(even) td {
+    background: #fcfcff;
+}
+
+.monthly-table tbody tr:hover td {
+    background: #f4f1ff;
+}
+
+.monthly-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.monthly-table td.amount-column {
+    text-align: right;
+    white-space: nowrap;
+}
+
+/* ---------- Cells ---------- */
+
+.monthly-date-cell {
+    font-weight: 650;
+    color: #292c49;
+    white-space: nowrap;
+}
+
+.monthly-description-cell {
+    max-width: 260px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: #555a78;
+}
+
+.category-chip {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 999px;
+    background: #f1edff;
+    color: #5b45d6;
+    font-size: 12px;
+    font-weight: 650;
+    white-space: nowrap;
+}
+
+.table-amount {
+    display: inline-block;
+    padding: 2px 9px;
+    border-radius: 6px;
+    font-size: 12.5px;
+    font-weight: 750;
+    white-space: nowrap;
+}
+
+.table-amount-expense {
+    background: #fff0f1;
+    color: #e05265;
+}
+
+.table-amount-income {
+    background: #e9faf3;
+    color: #119b70;
+}
+
+.table-amount-empty {
+    color: #c3c5d4;
+    font-weight: 600;
+}
+
+/* ---------- Pager as the table card footer ---------- */
+
+.monthly-table-card .pagination {
+    margin: 0;
+    padding: 12px 16px;
+    background: #fafaff;
+    border-top: 1px solid #ebe7ff;
+}
+
+/* ---------- Mobile ---------- */
+
+@media (max-width: 480px) {
+    .monthly-table thead th,
+    .monthly-table tbody td {
+        padding-left: 12px;
+        padding-right: 12px;
+    }
+}
+
+/* ========================================
+   Savings card (Monthly tab summary)
+   Append this to the end of your existing CSS file.
+======================================== */
+
+/* Three cards no longer fit on one line on narrower screens, so let the
+   date filter and the summary cards wrap instead of overflowing */
+.date-filter {
+    flex-wrap: wrap;
+}
+
+.monthly-summary {
+    flex-wrap: wrap;
+}
+
+/* Savings (positive: indigo) */
+
+.summary-savings {
+    background: linear-gradient(135deg, #f4f1ff, #ebe6ff);
+    border-color: #d9d0ff;
+}
+
+.summary-savings:hover {
+    box-shadow: 0 8px 20px rgba(112, 87, 237, 0.18);
+}
+
+.summary-savings .summary-icon {
+    background: #7057ed;
+    color: white;
+    box-shadow: 0 4px 10px rgba(112, 87, 237, 0.35);
+}
+
+.summary-savings .summary-label {
+    color: #7a67d8;
+}
+
+.summary-savings .summary-amount {
+    color: #5b45d6;
+}
+
+/* Savings (negative: amber, so a deficit stands out without clashing with Expense) */
+
+.summary-savings-negative {
+    background: linear-gradient(135deg, #fffaf0, #fff3dc);
+    border-color: #f3e3bd;
+}
+
+.summary-savings-negative:hover {
+    box-shadow: 0 8px 20px rgba(230, 155, 22, 0.2);
+}
+
+.summary-savings-negative .summary-icon {
+    background: #e69b16;
+    box-shadow: 0 4px 10px rgba(230, 155, 22, 0.35);
+}
+
+.summary-savings-negative .summary-label {
+    color: #b9801a;
+}
+
+.summary-savings-negative .summary-amount {
+    color: #c27d0e;
+}
+
+/* Tablet: three cards share the row, wrapping when too narrow */
+@media (max-width: 768px) {
+    .monthly-summary .summary-card {
+        flex: 1 1 160px;
+    }
+}
+
+/* Phones: stack them */
+@media (max-width: 480px) {
+    .monthly-summary .summary-card {
+        flex: 1 1 100%;
+    }
+}
+
+/* ========================================
+   Long descriptions: wrap and grow the row instead of overflowing
+   Append this to the very end of your existing CSS file, so it
+   overrides the earlier rules.
+======================================== */
+
+/* ---------- Daily tab ---------- */
+
+/* Let the text column shrink and wrap (flex items default to min-width:auto,
+   which is what made long text push out of the card) */
+.expense-item .expense-info {
+    flex: 1 1 0;
+    min-width: 0;
+}
+
+.expense-item .expense-info h3,
+.expense-item .expense-info p {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    white-space: normal;
+}
+
+.expense-item .expense-info p {
+    line-height: 1.45;
+}
+
+/* Keep the amount and Edit / Delete buttons at full size */
+.expense-item .expense-actions,
+.expense-item > .credit-amount,
+.expense-item > .debit-amount {
+    flex-shrink: 0;
+}
+
+/* ---------- Monthly tab (table) ---------- */
+
+.monthly-table .monthly-description-cell {
+    min-width: 200px;
+    max-width: 360px;
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    line-height: 1.4;
+}
+
+/* With taller rows, keep the other cells vertically centred */
+.monthly-table tbody td {
+    vertical-align: middle;
+}

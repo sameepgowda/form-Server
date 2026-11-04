@@ -1,6 +1,7 @@
 import express from "express";
 import expenseController  from "../Controllers/expenseController.js";
 import authMiddleware from "../Middleware/authMiddleware.js";
+import generateMonthlyReport from "../Controllers/generateMonthlyReport.js";
 
 const router = express.Router();
 
@@ -18,6 +19,8 @@ router.post("/getMonthlyReport",authMiddleware,expenseController.getMonthlyRepor
 router.delete("/deleteExpense/:id", authMiddleware, expenseController.deleteExpense);
 
 router.get("/getYearlyReport/:year",authMiddleware, expenseController.getYearlyReport);
+
+router.post("/generateMonthlyReport", authMiddleware, generateMonthlyReport.downloadExpenses );
 
 
 export default router;

@@ -2869,3 +2869,93 @@ body:has(#cf_checkout:not(:empty))::before {
         padding: 18px 16px 20px;
     }
 }
+
+
+/* Monthly report download button */
+
+.download-report-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 10px;
+    background: linear-gradient(120deg, #7057ed, #9275ff);
+    color: white;
+    font-size: 14px;
+    font-weight: 650;
+    white-space: nowrap;
+    box-shadow: 0 5px 14px rgba(112, 87, 237, 0.22);
+    transition: all 0.2s ease;
+}
+
+.download-report-button:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(112, 87, 237, 0.32);
+}
+
+.download-report-button:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+.download-icon {
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 1;
+}
+
+@media (max-width: 768px) {
+    .download-report-button {
+        align-self: flex-start;
+    }
+}
+
+@media (max-width: 480px) {
+    .download-report-button {
+        width: 100%;
+    }
+}
+
+
+/* Login success / error toast (shown for 2 seconds) */
+.toast {
+  position: fixed;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 12px 24px;
+  border-radius: 8px;
+  color: #fff;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+  animation: toast-in 0.25s ease-out;
+}
+
+.toast.success {
+  background: #2e9e5b;
+}
+
+.toast.error {
+  background: #d64545;
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -12px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+/* Disabled state for the Login button while the request is running */
+.signup-form button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

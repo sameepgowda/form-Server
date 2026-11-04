@@ -1,18 +1,29 @@
 import cashFreeService from "../Services/cashFreeService.js";
 import {User} from "../../Database/index.js";
+import { randomUUID } from "crypto";
 
 
 
 const createPaymentOrder = async (req,res)=>{
     if(req.UserId){
         try{
-            console.log("3. Entered try block");
-
-        const request = cashFreeService.request;
+    const request = {
+    "order_amount": 1.00,
+    "order_currency": "INR",
+    "order_id": `order_${randomUUID().slice(0,8)}`,
+    "customer_details": {
+        "customer_id": "devstudio_user",
+        "customer_phone": "9686429541"
+    },
+    "order_meta": {
+        "return_url": "https://www.cashfree.com/devstudio/preview/pg/web/checkout?order_id={order_id}"
+    }
+};
+            
 
         request["customer_details"]["customer_id"] = String(req.UserId);
 
-        console.log("4. Request prepared");
+        
 
         const orderInfo = await cashFreeService.cashfree.PGCreateOrder(request);
 

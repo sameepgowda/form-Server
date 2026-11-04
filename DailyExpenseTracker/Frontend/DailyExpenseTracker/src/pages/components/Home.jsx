@@ -97,9 +97,10 @@ function Home() {
     const [yearlyLoading, setYearlyLoading] = useState(true);
     const [yearlyError, setYearlyError] = useState('');
     const yearlyRequestId = useRef(0);
+    const [isPremium,setIspremium] = useState(sessionStorage.getItem("isPremium") === "true")
 
     // Read premium status from sessionStorage before the page renders
-    const isPremium = sessionStorage.getItem("isPremium") === "true";
+    
 
     const ADD_EXPENSE_API =
         "http://localhost:3000/expenseTracker/expense/addExpense";
@@ -111,6 +112,8 @@ function Home() {
 
     const MONTHLY_REPORT_API =
         "http://localhost:3000/expenseTracker/expense/getMonthlyReport";
+
+    const DOWNLOAD_MONTHLY_REPORT = "http://localhost:3000/expenseTracker/expense/generateMonthlyReport";
 
     // Premium subscription button click
     const handlePremiumSubscriptionClick = async () => {
@@ -140,7 +143,10 @@ function Home() {
             // Wait for checkout to finish, then ask the backend to verify payment.
             await cashfree.checkout(checkoutOptions);
 
-            const verificationResponse = await axios.post(
+            // The verification endpoint returns success only when
+            // Cashfree confirms that the order status is PAID.
+            // If it fails, axios throws and the catch block shows the failure popup.
+            await axios.post(
                 "http://localhost:3000/expenseTracker/payment/verifyPayment",
                 {
                     order_id: response.data.orderId
@@ -150,14 +156,27 @@ function Home() {
                 }
             );
 
-            // The verification endpoint should return success only when
-            // Cashfree confirms that the order status is PAID.
+            // Payment verified: mark the user as premium for this session.
+            // The page reloads when the success popup is closed (see handlePaymentResultClose).
+            sessionStorage.setItem("isPremium", "true");
             setPaymentPopup("success");
+            setIspremium(true);
 
         } catch (err) {
             console.log("Payment/verification error:", err);
             setPaymentPopup("failure");
         }
+    };
+
+    // Close the payment result popup.
+    // After a successful payment, reload so the page renders as a premium user page.
+    const handlePaymentResultClose = () => {
+        if (paymentPopup === "success") {
+            window.location.reload();
+            return;
+        }
+
+        setPaymentPopup(null);
     };
 
     // Show leaderboard (to be implemented)
@@ -374,7 +393,7 @@ function Home() {
     // Fetch whenever the selected date changes
     useEffect(() => {
         getExpenses();
-    }, [selectedDate]);
+    }, [selectedDate,isPremium]);
 
     // Fetch the monthly report when the monthly tab opens or the month changes
     useEffect(() => {
@@ -643,6 +662,35 @@ function Home() {
         }
     };
 
+const downloadMonthlyReport = async () => {
+    // Open the tab immediately, inside the click handler, so popup blockers allow it
+    const newTab = window.open('', '_blank');
+
+    try {
+        const token = sessionStorage.getItem("token");
+        const [year, month] = selectedMonth.split('-').map(Number);
+
+        const response = await axios.post(
+            DOWNLOAD_MONTHLY_REPORT,
+            { month, year },
+            { headers: { Authorization: `${token}` } }
+        );
+
+        const { url } = response.data;
+
+        if (newTab) {
+            newTab.location.href = url;
+        } else {
+            // Popup was blocked: fall back to the current tab
+            window.location.href = url;
+        }
+    } catch (err) {
+        console.log(err);
+        if (newTab) newTab.close();
+        alert("Unable to generate the report.");
+    }
+};
+
     return (
         <div className="home-container">
 
@@ -693,6 +741,7 @@ function Home() {
                         onPageChange={setMonthlyPage}
                         pageSize={monthlyPageSize}
                         onPageSizeChange={handleMonthlyPageSizeChange}
+                        onDownloadMonthlyReport={downloadMonthlyReport}
                     />
                 )}
 
@@ -749,10 +798,10 @@ function Home() {
                 onClose={() => setLeaderboardPopup(null)}
             />
 
-            {/* Premium payment result popup */}
+            {/* Premium payment result popup (reloads the page after a successful payment) */}
             <PaymentResultModal
                 result={paymentPopup}
-                onClose={() => setPaymentPopup(null)}
+                onClose={handlePaymentResultClose}
             />
 
         </div>

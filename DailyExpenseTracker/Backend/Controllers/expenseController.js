@@ -155,11 +155,14 @@ const getDailyBalance = async (req, res) => {
     const incomeExpenseData = await ExpenseData.findAll({
       where: { UserId, date },
       raw: true,
+      order:[["date","desc"]]
     });
 
-    const { incomeRows, expenseRows } = splitIncomeAndExpense(incomeExpenseData);
+    let { incomeRows, expenseRows } = splitIncomeAndExpense(incomeExpenseData);
 
-    
+
+    incomeRows = incomeRows.sort((a,b)=>b.id-a.id);
+    expenseRows = expenseRows.sort((a,b)=>b.id-a.id);
 
     res.status(200).json({
       totalIncome: sumAmounts(incomeRows),
@@ -240,7 +243,7 @@ const getMonthlyReport = async (req, res) => {
       },
       order: [
         ["date", "desc"],
-        ["id", "asc"],
+        ["id", "desc"],
       ],
       raw: true,
     });
@@ -258,6 +261,9 @@ const getMonthlyReport = async (req, res) => {
     next(err);
   }
 };
+
+
+
 
 const getYearlyReport = async (req, res) => {
   const UserId = req.UserId;

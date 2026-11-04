@@ -1,3 +1,4 @@
+
 import Pagination from './Pagination';
 import PeriodNavigator from './PeriodNavigator';
 import PeriodSummary from './PeriodSummary';
@@ -14,7 +15,8 @@ function MonthlyView({
     page,
     onPageChange,
     pageSize,
-    onPageSizeChange
+    onPageSizeChange,
+    onDownloadMonthlyReport
 }) {
     // Savings = income + expense (the monthly expense total is already negative)
     const monthlySavings = report.totalMonthlyIncome + report.totalMonthlyExpense;
@@ -30,7 +32,6 @@ function MonthlyView({
 
     return (
         <>
-
             <div className="transactions-toolbar">
                 <div>
                     <h2>Monthly Report</h2>
@@ -38,11 +39,20 @@ function MonthlyView({
                         View your income and expenses for the month.
                     </p>
                 </div>
+
+                <button
+                    type="button"
+                    className="download-report-button"
+                    onClick={onDownloadMonthlyReport}
+                    disabled={loading || rows.length === 0}
+                >
+                    <span className="download-icon">↓</span>
+                    Download Report
+                </button>
             </div>
 
             {/* Month navigation */}
             <div className="date-filter">
-
                 <PeriodNavigator
                     id="report-month"
                     label="Select month"
@@ -61,7 +71,6 @@ function MonthlyView({
                     expense={report.totalMonthlyExpense}
                     savings={monthlySavings}
                 />
-
             </div>
 
             {loading ? (
@@ -76,7 +85,6 @@ function MonthlyView({
                 </p>
             ) : (
                 <div className="monthly-table-card">
-
                     <div className="monthly-table-wrapper">
                         <table className="monthly-table">
                             <thead>
@@ -101,7 +109,10 @@ function MonthlyView({
                                                 {formatReportDate(item.date)}
                                             </td>
 
-                                            <td className="monthly-description-cell" title={item.description}>
+                                            <td
+                                                className="monthly-description-cell"
+                                                title={item.description}
+                                            >
                                                 {item.description}
                                             </td>
 
@@ -147,10 +158,8 @@ function MonthlyView({
                         pageSizeOptions={MONTHLY_PAGE_SIZE_OPTIONS}
                         onPageSizeChange={onPageSizeChange}
                     />
-
                 </div>
             )}
-
         </>
     );
 }

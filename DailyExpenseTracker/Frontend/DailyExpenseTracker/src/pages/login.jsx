@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
@@ -10,10 +10,32 @@ function Login() {
     password: ''
   });
 
+  const [loggingIn, setLoggingIn] = useState(false);
+
+  // Toast popup: { type: 'success' | 'error', message: string }
+  const [toast, setToast] = useState(null);
+  const toastTimer = useRef(null);
+
   const [showResetPopup, setShowResetPopup] = useState(false);
   const [resetEmail, setResetEmail] = useState('');
   const [resetStatus, setResetStatus] = useState(null);
   const [sendingReset, setSendingReset] = useState(false);
+
+  // Show a popup for 2 seconds, then run an optional callback
+  const showToast = (type, message, onDone) => {
+    clearTimeout(toastTimer.current);
+    setToast({ type, message });
+
+    toastTimer.current = setTimeout(() => {
+      setToast(null);
+      if (onDone) onDone();
+    }, 2000);
+  };
+
+  // Clear the timer if the component unmounts
+  useEffect(() => {
+    return () => clearTimeout(toastTimer.current);
+  }, []);
 
   const handleChange = (e) => {
     setFormData({
@@ -24,47 +46,63 @@ function Login() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (loggingIn) return;
+
     const payload = {
-        email:formData.email,
-        password:formData.password
-    }
-    try{
-        const response = await axios.post("http://localhost:3000/expenseTracker/user/login",payload);
-        console.log(response);
-        if(response.status==200){
-            sessionStorage.setItem("isPremium",(response.data.isPremium==1));
-            
-            sessionStorage.setItem("token",response.data.token);
-            window.alert("Login Successful");
-            navigate("/home");
-        }
-    }catch(err){
-        window.alert(err.message);
-        console.log(err);
+      email: formData.email,
+      password: formData.password
+    };
+
+    try {
+      setLoggingIn(true);
+
+      const response = await axios.post(
+        "http://localhost:3000/expenseTracker/user/login",
+        payload
+      );
+
+      if (response.status === 200) {
+        sessionStorage.setItem("isPremium", response.data.isPremium == 1);
+        sessionStorage.setItem("token", response.data.token);
+
+        // Button stays disabled until we navigate away
+        showToast("success", "Login successful", () => navigate("/home"));
+      } else {
+        setLoggingIn(false);
+      }
+    } catch (err) {
+      console.log(err);
+      setLoggingIn(false);
+      showToast(
+        "error",
+        err.response?.data?.message || err.message || "Login failed"
+      );
     }
   };
 
-  const sendPasswordResetLink = async () =>{
-    const payload = {email : resetEmail.trim()} 
-    try{
+  const sendPasswordResetLink = async () => {
+    const payload = { email: resetEmail.trim() };
+    try {
       setSendingReset(true);
       setResetStatus(null);
 
-      const response = await axios.post("http://localhost:3000/expenseTracker/user/forgotPassword",
+      const response = await axios.post(
+        "http://localhost:3000/expenseTracker/user/forgotPassword",
         payload
       );
-      if(response.status >= 200 && response.status < 300){
+      if (response.status >= 200 && response.status < 300) {
         setResetStatus("success");
-      }else{
+      } else {
         setResetStatus("failure");
       }
-    }catch(err){
+    } catch (err) {
       console.log(err);
       setResetStatus("failure");
-    }finally{
+    } finally {
       setSendingReset(false);
     }
-  }
+  };
 
   // Close the popup and reset its state
   const closeResetPopup = () => {
@@ -76,6 +114,13 @@ function Login() {
 
   return (
     <div className="signup-container">
+      {/* Login success / error toast (auto-hides after 2 seconds) */}
+      {toast && (
+        <div className={`toast ${toast.type}`} role="status">
+          {toast.message}
+        </div>
+      )}
+
       <form className="signup-form" onSubmit={handleSubmit}>
         <h2>Welcome Back</h2>
         <p>Login to your account</p>
@@ -102,7 +147,9 @@ function Login() {
           required
         />
 
-        <button type="submit">Login</button>
+        <button type="submit" disabled={loggingIn}>
+          {loggingIn ? "Logging in..." : "Login"}
+        </button>
 
         <button
           type="button"

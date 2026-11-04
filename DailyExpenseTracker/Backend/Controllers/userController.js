@@ -308,3 +308,7 @@ export default {
 // });
 
 //Remember: Group belongs at the top level of the query, always.
+
+
+//If something fails mid-generation, the Promise rejects so your await throws an error hence
+// it moves to catch block.

@@ -2685,3 +2685,187 @@ body:has(#cf_checkout:not(:empty))::before {
 .monthly-table tbody td {
     vertical-align: middle;
 }
+/* ========================================
+   Yearly report
+   Append this to the end of your existing CSS file.
+   (It reuses the date filter, summary cards and table styles
+   from the Monthly tab.)
+======================================== */
+
+/* Year shown next to the heading */
+.transactions-toolbar h2 .year-badge {
+    display: inline-block;
+    margin-left: 12px;
+    padding: 3px 14px;
+    border-radius: 999px;
+    background: linear-gradient(120deg, #7057ed, #9275ff);
+    color: white;
+    font-size: 17px;
+    font-weight: 750;
+    letter-spacing: 0.3px;
+    vertical-align: middle;
+    box-shadow: 0 6px 14px rgba(112, 87, 237, 0.28);
+}
+
+/* Year box: narrower than the date / month pickers */
+.date-filter .year-navigation input {
+    width: 120px;
+    min-width: 0;
+}
+
+/* The yearly table has fewer columns than the monthly one */
+.yearly-table {
+    min-width: 560px;
+}
+
+.yearly-month-cell {
+    font-weight: 700;
+    color: #292c49;
+    white-space: nowrap;
+}
+
+/* Savings badges (same colours as the Savings summary card) */
+.table-amount-savings {
+    background: #f1edff;
+    color: #5b45d6;
+}
+
+.table-amount-savings-negative {
+    background: #fff3dc;
+    color: #c27d0e;
+}
+
+/* Mobile */
+@media (max-width: 600px) {
+    .date-filter .year-navigation input {
+        flex: 1;
+        width: auto;
+    }
+}
+
+@media (max-width: 480px) {
+    .transactions-toolbar h2 .year-badge {
+        margin-left: 8px;
+        padding: 2px 11px;
+        font-size: 15px;
+    }
+}
+
+/* ========================================
+   Notes field (Add / Edit transaction form)
+   Append this to the end of your existing CSS file.
+======================================== */
+
+/* "(optional)" hint next to the Notes label */
+.modal-content form label .optional-label {
+    font-weight: 500;
+    color: #9a9db3;
+}
+
+/* Same look as the other form fields */
+.modal-content form textarea {
+    width: 100%;
+    min-height: 84px;
+    padding: 12px 13px;
+    border: 1px solid #e2e3ee;
+    border-radius: 9px;
+    background: #fafaff;
+    color: #343650;
+    font: inherit;
+    line-height: 1.45;
+    outline: none;
+    resize: vertical;
+    transition: all 0.2s ease;
+}
+
+.modal-content form textarea::placeholder {
+    color: #b1b3c3;
+}
+
+.modal-content form textarea:focus {
+    border-color: #8874f5;
+    background: white;
+    box-shadow: 0 0 0 3px rgba(136, 116, 245, 0.12);
+}
+
+/* ========================================
+   Add / Edit transaction popup: fit the form without a scroll bar
+   Append this to the very end of your existing CSS file, so it
+   overrides the earlier rules.
+======================================== */
+
+/* No scroll bar, and the popup grows to fit the whole form */
+.modal-content.transaction-form-modal {
+    max-height: none;
+    overflow: visible;
+    padding: 22px 26px 24px;
+}
+
+.transaction-form-modal .modal-content .section-description,
+.modal-content.transaction-form-modal .section-description {
+    margin-top: 4px;
+    margin-bottom: 12px;
+}
+
+/* Tighter spacing between fields */
+.modal-content.transaction-form-modal form {
+    gap: 4px;
+}
+
+.modal-content.transaction-form-modal form label {
+    margin-top: 6px;
+}
+
+.modal-content.transaction-form-modal form input,
+.modal-content.transaction-form-modal form select {
+    padding: 9px 12px;
+}
+
+.modal-content.transaction-form-modal .category-field {
+    align-items: center;
+}
+
+.modal-content.transaction-form-modal .suggest-category-button {
+    min-height: 38px;
+}
+
+/* Notes: compact box with a fixed size, so the form height stays predictable */
+.modal-content.transaction-form-modal form textarea {
+    min-height: 62px;
+    padding: 9px 12px;
+    resize: none;
+}
+
+.modal-content.transaction-form-modal form .add-button {
+    margin-top: 12px;
+    padding: 12px;
+}
+
+/* Notes label: "Notes (optional)" on the left, character count on the right */
+.modal-content form label.notes-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+}
+
+.notes-counter {
+    font-size: 12px;
+    font-weight: 600;
+    color: #9a9db3;
+}
+
+/* Very short screens (e.g. phones in landscape): the form cannot fit, so
+   fall back to scrolling instead of cutting the form off */
+@media (max-height: 620px) {
+    .modal-content.transaction-form-modal {
+        max-height: 96vh;
+        overflow-y: auto;
+    }
+}
+
+/* Phones */
+@media (max-width: 480px) {
+    .modal-content.transaction-form-modal {
+        padding: 18px 16px 20px;
+    }
+}

@@ -1,354 +1,360 @@
-import { ExpenseData } from "../../Database/index.js";
-import {sequelize} from "../../Database/db.js";
-import { Op, literal , fn, col, QueryTypes, Model } from "sequelize";
-import {User} from "../../Database/index.js";
+import { Op, fn, col } from "sequelize";
+import { ExpenseData, User } from "../../Database/index.js";
+import { sequelize } from "../../Database/db.js";
 import geminiAiService from "../Services/geminiAiService.js";
 
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
 
-const addExpense = async (req,res, next)=>{
-        let {date, category, expenseAmount, description} = req.body;
-        console.log(req.body);
-        let UserId = req.UserId;
-        expenseAmount=Number(expenseAmount);
-        if(UserId && date && expenseAmount && category){
-            const t1 = await sequelize.transaction();
-            try{
-                const expenseId = await ExpenseData.create({UserId, date, category, expenseAmount, description},
-                    {transaction:t1}
-                    
-                );
-                if(expenseAmount<0){
-                    const updatedExpenseAmount = -(expenseAmount);
-                    await User.update({totalExpense:literal(`totalExpense + ${updatedExpenseAmount}`)},{where:{id:UserId},transaction:t1});
-                }
+// Amount of money spent: positive for a debit (negative amount), 0 for a credit
+const getDebitAmount = (expenseAmount) => (expenseAmount < 0 ? -expenseAmount : 0);
 
-                await t1.commit();
-                res.status(201).json({message:"Expense added successfully",
-                    expenseInfo:{
-                        expenseId : expenseId.dataValues.id,
-                        date,
-                        category,
-                        expenseAmount,
-                        description
-                    }
-                })
-            }catch(err){
-                await t1.rollback();
-                next(err);
-            }
-        }else{
-            return res.status(400).json({message:"Bad request"});
-        }
+// Add (or, with a negative amount, subtract) from the user's running total expense
+const adjustTotalExpense = async (UserId, amount, transaction) => {
+  if (!amount) return;
 
-}
+  await User.increment("totalExpense", {
+    by: amount,
+    where: { id: UserId },
+    transaction,
+  });
+};
 
-const editExpense = async (req,res, next)=>{
-        let {id, date, category, expenseAmount, description} = req.body;
-        console.log(req.body);
-        let UserId = req.UserId;
-        expenseAmount=Number(expenseAmount);
-        if(UserId && date && expenseAmount && category){
-            try{
-                const expenseId = await ExpenseData.update({category, expenseAmount, description},{where:{id,UserId}});
-
-                
-                res.status(201).json({message:"Expense updated successfully", 
-                    expenseInfo:{
-                        id,
-                        date,
-                        category,
-                        expenseAmount,
-                        description
-                    }
-                })
-            }catch(err){
-                next(err);
-            }
-        }else{
-            return res.status(400).json({message:"Bad request"});
-        }
-
-}
-
-const getDailyBalance = async (req,res)=>{
-    if(req.UserId && req.body.date){
-        try{
-            const date = req.body.date;
-            const UserId = req.UserId;
-
-        const incomeExpenseData = await ExpenseData.findAll({where:{
-            UserId:UserId,date:date,
-        },raw:true});
-
-        const incomeData = incomeExpenseData.filter((obj)=>obj.expenseAmount>0);
-        const expenseData = incomeExpenseData.filter((obj)=>obj.expenseAmount<0);
-        const modifiedIncomeData = incomeData.map(({UserId,...rest})=>rest);
-        const modifiedExpenseData = expenseData.map(({UserId,...rest})=>rest);
-        let totalIncome = incomeData.length>0?incomeData.reduce((accum,obj)=>accum+Number(obj.expenseAmount),0):0;
-        let totalExpense = expenseData.length>0?expenseData.reduce((accum,obj)=>accum+Number(obj.expenseAmount),0):0;
-
-        const closingBalanceData = await ExpenseData.findAll({attributes:[
-            [fn("SUM", col("expenseAmount")),"closingBalance"]
-        ], where:{UserId,date:{[Op.lte]:date}},group:["UserId"],raw:true});
-
-
-        
-        const closingBalance = closingBalanceData[0]?.closingBalance ?? 0;
-        
-             res.status(200).json({closingBalance,totalIncome,totalExpense,
-                incomeData:modifiedIncomeData,expenseData:modifiedExpenseData
-            })
-        
-        }catch(err){
-            res.status(500).json({error:err.message});
-            console.log(err);
-            
-        }
-    }else{
-        return res.status(400).json({message:"Bad request"});
-    }
-}
-
-const deleteExpense = async (req,res)=>{
-    if(req.params.id && req.UserId){
-        let id = req.params.id;
-        const t2 = await sequelize.transaction();
-        try{
-        const expenseInfo = await ExpenseData.findAll({where:{id}, raw:true});
-        if(expenseInfo.length>0 && expenseInfo[0].expenseAmount<0){
-            const modifiedExpenseAmount = -(expenseInfo[0].expenseAmount);
-            await User.decrement('totalExpense', {
-    by: Number(modifiedExpenseAmount),
-    where: { id: req.UserId },
-    transaction: t2
+// Split rows into income (amount > 0) and expense (amount < 0)
+const splitIncomeAndExpense = (rows) => ({
+  incomeRows: rows.filter((row) => Number(row.expenseAmount) > 0),
+  expenseRows: rows.filter((row) => Number(row.expenseAmount) < 0),
 });
 
-        }
+const sumAmounts = (rows) =>
+  rows.reduce((total, row) => total + Number(row.expenseAmount), 0);
 
-        await ExpenseData.destroy({where:{id}, transaction:t2});
-        await t2.commit();
-                  
-        res.status(200).json({message:"Expense successfully deleted",
-            expenseInfo:{expenseId:id}
-        })
+const omitUserId = ({ UserId, ...rest }) => rest;
 
-        }catch(err){
-            await t2.rollback();
-            console.log(err);
-            res.status(500).json({error:err.message});
-        }
-    }else{
-        res.status(400).json({message:"Bad Request"});
-    }
-}
+// Monthly SUM(expenseAmount) for one year, limited to credits or debits
+const findMonthlySums = (UserId, startDate, endDate, amountCondition, alias) =>
+  ExpenseData.findAll({
+    attributes: [
+      [fn("MONTH", col("date")), "month"],
+      [fn("SUM", col("expenseAmount")), alias],
+    ],
+    where: {
+      UserId,
+      date: { [Op.gte]: startDate, [Op.lte]: endDate },
+      expenseAmount: amountCondition,
+    },
+    group: [fn("MONTH", col("date"))],
+    order: [[fn("MONTH", col("date")), "desc"]],
+    raw: true,
+  });
 
-const bulkDeleteExpense = async (req, res)=>{
-    if(req.body.UserId && req.body.date && req.body.totalCreditOfTheDay && req.body.totalDebitOfTheDay){
-        let {UserId, date, totalCreditOfTheDay, totalDebitOfTheDay } = req.body;
-        totalCreditOfTheDay =Number(totalCreditOfTheDay);
-        totalDebitOfTheDay = Number(totalDebitOfTheDay);
-        const t4 = await sequelize.transaction();
-        try{
-                const deleteData = await ExpenseData.destroy({where:{UserId,date},transaction:t4});
-                if(deleteData>0){
-                    await DailyBalance.update({closingBalance:literal(`closingbalance - ${totalCreditOfTheDay} - ${totalDebitOfTheDay}`)},
-                {where:{UserId,date:{[Op.gte]:date}},transaction:t4})
-                };
-                await DailyBalance.destroy({where:{UserId,date},transaction:t4});
-                await t4.commit();
-                res.status(200).json({message:"Deletion successful"});
-        }catch(err){
-            await t4.rollback();
-            res.status(500).json({error:err.message});
-        }
+// ---------------------------------------------------------------------------
+// Controllers
+// ---------------------------------------------------------------------------
 
-    }else{
-        res.status(400).json({message:"Bad Request"});
-    }
-}
+const addExpense = async (req, res, next) => {
+  const { date, category, description, notes } = req.body;
+  const UserId = req.UserId;
+  const expenseAmount = Number(req.body.expenseAmount);
 
-const getMonthlyReport = async (req,res)=>{
-    console.log("MONTH",req.body)
-    let {month,year} = req.body;
-    const UserId = req.UserId;
-    if(month && year){
-        try{
-        // let t2 = sequelize.transaction();
-        let dailyExpenses = [];
-        let totalMonthlyBalance = 0;
-        let totalMonthlyIncome = 0;
-        let totalMonthlyExpense = 0;
-        month = Number(month);
-        year = Number(year);
-        let startDate = "";
-        let endDate = "";
-        startDate = `${year}-${String(month).padStart(2,"0")}-01`;
-        if(month<12){
-            endDate = `${year}-${String(month+1).padStart(2,"0")}-01`
-        }else{
-            endDate = `${year+1}-01-01`
-        }
-        const monthlyExpenseData = await ExpenseData.findAll({where:{
-            UserId,
-            date:{
-                [Op.gte]:startDate,
-                [Op.lt]:endDate
-            }
-        },
-    order:[["date","desc"],["id","asc"]],raw:true});
-
-    if(monthlyExpenseData.length>0){
-            totalMonthlyIncome = monthlyExpenseData.reduce((accum,obj)=>{
-                if(obj.expenseAmount>0){
-                    
-                return accum + Number(obj.expenseAmount)
-                }else{
-                    return accum
-                }
-            },0);
-
-            totalMonthlyExpense = monthlyExpenseData.reduce((accum,obj)=>{
-                if(obj.expenseAmount<0){
-                    
-                return accum + Number(obj.expenseAmount)
-                }else{
-                    return accum
-                }
-            },0);
-
-            
-
-            
-            let currDate = startDate;
-            while(currDate<endDate) {
-                const filteredData = monthlyExpenseData.filter((obj)=>obj.date==currDate);
-                // console.log("i",dailyExpenses);
-                let totalCreditOfTheDay = 0;
-                let totalDebitOfTheDay = 0;              
-                let dailyExpensesObj = {};
-                if(filteredData.length>0){
-                
-                totalCreditOfTheDay = filteredData.reduce((accum,obj)=>{
-                if(obj.expenseAmount>0){
-                    
-                return accum + Number(obj.expenseAmount)
-                }else{
-                    return accum
-                }
-            },0);
-
-            totalDebitOfTheDay = filteredData.reduce((accum,obj)=>{
-                if(obj.expenseAmount<0){
-                    
-                return accum + Number(obj.expenseAmount)
-                }else{
-                    return accum
-                }
-            },0);
-
-            
-                {dailyExpensesObj[currDate] = {totalCreditOfTheDay,totalDebitOfTheDay,
-                    ExpenseInfo:filteredData};
-                    
-                dailyExpenses.push(dailyExpensesObj);
-                }
-            }
-                
-                let dateObj = new Date(currDate);
-                dateObj.setDate(dateObj.getDate() + 1);
-                let dateStr = dateObj.toISOString().slice(0, 10);
-                currDate = dateStr;
-                // console.log(currDate);
-            } 
-            
-            dailyExpenses.sort((a,b)=>{
-                console.log(a)
-                let dateA = Object.keys(a)[0];
-                let dateB = Object.keys(b)[0];
-
-                return new Date(dateB) - new Date(dateA);
-            })
-           
-        
-    }
-
-    const responseObj = {
-        totalMonthlyIncome,totalMonthlyExpense, monthlyExpenseData
-       }
-    res.status(200).json(responseObj);
-
-      }catch(err){
-        res.status(500).json({"error":err.message});
-        console.log(err);
-    }
-
-    }else{
-        
-        res.status(400).json({message:"bad request"});
-    }
-}
-
-const getYearlyReport = async (req,res)=>{
-    if(req.body.UserId && req.body.year){
-        
-        try{
-            const {year,UserId} = req.body;
-            // const UserId = req.UserId;
-        const startDate = `${String(req.body.year)}-01-01`;
-        const endDate = `${String(req.body.year)}-12-31`;
-    
-
-const monthlyExpense = await ExpenseData.findAll({attributes:[[fn("MONTH",col("date")),"month"],[fn("SUM", col("expenseAmount") ),"totalExpense"]],
-   
-where:{UserId,date:{[Op.gte]:startDate,[Op.lte]:endDate},expenseAmount:{[Op.lt]:0}},group:[fn("MONTH",col("date"))],order:[[fn("MONTH",col("date")),"desc"]],raw:true});
-
-  const monthlyCredit = await ExpenseData.findAll({attributes:[[fn("MONTH",col("date")),"month"],[fn("SUM", col("expenseAmount") ),"totalCredit"]],
-   
-where:{UserId,date:{[Op.gte]:startDate,[Op.lte]:endDate},expenseAmount:{[Op.gt]:0}},group:[fn("MONTH",col("date"))],order:[[fn("MONTH",col("date")),"desc"]],raw:true});
-
-const totalExpenseOftheYear = -(monthlyExpense.reduce((accum,obj)=>accum+Number(obj.totalExpense),0));
-
-const totalIncomeOftheYear = monthlyCredit.reduce((accum,obj)=>accum+Number(obj.totalCredit),0);
-
-const totalSavings = totalIncomeOftheYear - totalExpenseOftheYear;
-
-return res.status(200).json({monthlyExpense,monthlyCredit,totalExpenseOftheYear,totalIncomeOftheYear,totalSavings})
-
-
-}catch(err){
-    res.status(500).json({error:err.message});
-    console.log(err);
+  if (!(UserId && date && expenseAmount && category)) {
+    return res.status(400).json({ message: "Bad request" });
   }
 
- }else{
- res.status(400).json({message:'Bad Request'});
- }
+  const transaction = await sequelize.transaction();
+  try {
+    const expense = await ExpenseData.create(
+      { UserId, date, category, expenseAmount, description, notes },
+      { transaction },
+    );
 
-}
+    // Only debits count towards the user's total expense
+    await adjustTotalExpense(UserId, getDebitAmount(expenseAmount), transaction);
 
-const generateCategoryUsingAI = async (req,res,next)=>{
-    let {description} = req.body;
-        console.log(req.body);
-        let UserId = req.UserId;
-        if(UserId && description){
-            
-            try{
-            const response = await geminiAiService.ai.models.generateContent({
-            model: "gemini-3.6-flash",
-            contents: `Generate an appropriate one word category to be entered in an 
+    await transaction.commit();
+    res.status(201).json({
+      message: "Expense added successfully",
+      expenseInfo: {
+        expenseId: expense.id,
+        date,
+        category,
+        expenseAmount,
+        description,
+      },
+    });
+  } catch (err) {
+    await transaction.rollback();
+    next(err);
+  }
+};
+
+const editExpense = async (req, res, next) => {
+  const { id, date, category, description, notes } = req.body;
+  const UserId = req.UserId;
+  const expenseAmount = Number(req.body.expenseAmount);
+
+  if (!(UserId && date && expenseAmount && category)) {
+    return res.status(400).json({ message: "Bad request" });
+  }
+
+  const transaction = await sequelize.transaction();
+  try {
+    const existingExpense = await ExpenseData.findOne({
+      where: { id, UserId },
+      raw: true,
+      transaction,
+    });
+
+    if (!existingExpense) {
+      await transaction.rollback();
+      return res.status(404).json({ message: "Expense not found" });
+    }
+
+    // Change in the user's total expense = new debit - old debit.
+    // This covers debit -> debit, debit -> credit, credit -> debit and
+    // credit -> credit (no change) in one go.
+    const totalExpenseChange =
+      getDebitAmount(expenseAmount) -
+      getDebitAmount(Number(existingExpense.expenseAmount));
+
+    await adjustTotalExpense(UserId, totalExpenseChange, transaction);
+
+    await ExpenseData.update(
+      { category, expenseAmount, description, notes },
+      { where: { id, UserId }, transaction },
+    );
+
+    await transaction.commit();
+    res.status(201).json({
+      message: "Expense updated successfully",
+      expenseInfo: {
+        id,
+        date,
+        category,
+        expenseAmount,
+        description,
+        notes,
+      },
+    });
+  } catch (err) {
+    await transaction.rollback();
+    next(err);
+  }
+};
+
+const getDailyBalance = async (req, res) => {
+  const UserId = req.UserId;
+  const { date } = req.body;
+
+  if (!(UserId && date)) {
+    return res.status(400).json({ message: "Bad request" });
+  }
+
+  try {
+    const incomeExpenseData = await ExpenseData.findAll({
+      where: { UserId, date },
+      raw: true,
+    });
+
+    const { incomeRows, expenseRows } = splitIncomeAndExpense(incomeExpenseData);
+
+    
+
+    res.status(200).json({
+      totalIncome: sumAmounts(incomeRows),
+      totalExpense: sumAmounts(expenseRows),
+      incomeData: incomeRows.map(omitUserId),
+      expenseData: expenseRows.map(omitUserId),
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+};
+
+const deleteExpense = async (req, res) => {
+  const { id } = req.params;
+  const UserId = req.UserId;
+
+  if (!(id && UserId)) {
+    return res.status(400).json({ message: "Bad Request" });
+  }
+
+  const transaction = await sequelize.transaction();
+  try {
+    // Only the owner can delete an expense
+    const expense = await ExpenseData.findOne({
+      where: { id, UserId },
+      raw: true,
+      transaction,
+    });
+
+    if (!expense) {
+      await transaction.rollback();
+      return res.status(404).json({ message: "Expense not found" });
+    }
+
+    // Deleting a debit lowers the user's total expense
+    await adjustTotalExpense(
+      UserId,
+      -getDebitAmount(Number(expense.expenseAmount)),
+      transaction,
+    );
+
+    await ExpenseData.destroy({ where: { id, UserId }, transaction });
+    await transaction.commit();
+
+    res.status(200).json({
+      message: "Expense successfully deleted",
+      expenseInfo: { expenseId: id },
+    });
+  } catch (err) {
+    await transaction.rollback();
+    console.error(err);
+    next(err);
+  }
+};
+
+const getMonthlyReport = async (req, res) => {
+  const UserId = req.UserId;
+  const month = Number(req.body.month);
+  const year = Number(req.body.year);
+
+  if (!(UserId && month && year)) {
+    return res.status(400).json({ message: "bad request" });
+  }
+
+  try {
+    // First day of the month up to (but not including) the first day of the next
+    const startDate = `${year}-${String(month).padStart(2, "0")}-01`;
+    const endDate =
+      month < 12
+        ? `${year}-${String(month + 1).padStart(2, "0")}-01`
+        : `${year + 1}-01-01`;
+
+    const monthlyExpenseData = await ExpenseData.findAll({
+      where: {
+        UserId,
+        date: { [Op.gte]: startDate, [Op.lt]: endDate },
+      },
+      order: [
+        ["date", "desc"],
+        ["id", "asc"],
+      ],
+      raw: true,
+    });
+
+    const { incomeRows, expenseRows } = splitIncomeAndExpense(monthlyExpenseData);
+    const monthlyExpenseDataRes = monthlyExpenseData.map(({UserId,...rest})=>rest)
+
+    res.status(200).json({
+      totalMonthlyIncome: sumAmounts(incomeRows),
+      totalMonthlyExpense: sumAmounts(expenseRows),
+      monthlyExpenseData:monthlyExpenseDataRes,
+    });
+  } catch (err) {
+    console.error(err);
+    next(err);
+  }
+};
+
+const getYearlyReport = async (req, res) => {
+  const UserId = req.UserId;
+
+  if (!(UserId && req.params.year)) {
+    return res.status(400).json({ message: "Bad Request" });
+  }
+
+  try {
+    const year = Number(req.params.year);
+    const startDate = `${year}-01-01`;
+    const endDate = `${year}-12-31`;
+
+    const [monthlyExpense, monthlyCredit] = await Promise.all([
+      findMonthlySums(UserId, startDate, endDate, { [Op.lt]: 0 }, "totalExpense"),
+      findMonthlySums(UserId, startDate, endDate, { [Op.gt]: 0 }, "totalCredit"),
+    ]);
+
+     const totalExpenseOftheYear = -(monthlyExpense.reduce(
+        (accum, obj) => accum + Number(obj.totalExpense),
+        0,
+      ));
+
+      const totalIncomeOftheYear = monthlyCredit.reduce(
+        (accum, obj) => accum + Number(obj.totalCredit),
+        0,
+      );
+    const totalSavings = totalIncomeOftheYear - totalExpenseOftheYear;
+
+    // December down to January, skipping months without any transactions
+    const monthlyTransactionData = [];
+    for (let month = 12; month >= 1; month--) {
+        let totalMonthlyExpense = 0;
+        let totalMonthlyCredit = 0;
+        let totalMonthlySavings = 0;
+        const obj1 = monthlyExpense.find((obj) => obj.month == month);
+
+        if (obj1) {
+          totalMonthlyExpense = Number(obj1.totalExpense);
+        }
+        const obj2 = monthlyCredit.find((obj) => obj.month == month);
+
+        if (obj2) {
+          totalMonthlyCredit = Number(obj2.totalCredit);
+        }
+        totalMonthlySavings = totalMonthlyExpense + totalMonthlyCredit;
+        if (totalMonthlyCredit != 0 || totalMonthlyExpense != 0) {
+          monthlyTransactionData.push({
+            month,
+            totalMonthlyCredit,
+            totalMonthlyExpense,
+            totalMonthlySavings,
+          });
+        }
+    }
+
+    return res.status(200).json({
+      monthlyTransactionData,
+      totalExpenseOftheYear,
+      totalIncomeOftheYear,
+      totalSavings,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+};
+
+const generateCategoryUsingAI = async (req, res, next) => {
+  const { description } = req.body;
+  const UserId = req.UserId;
+
+  if (!(UserId && description)) {
+    return res.status(400).json({ message: "Bad request" });
+  }
+
+  try {
+    const response = await geminiAiService.ai.models.generateContent({
+      model: "gemini-3.6-flash",
+      contents: `Generate an appropriate one word category to be entered in an 
             expense tracker for the following expense/credit description.If
              a category is present in the avaialable categories, just use that otherwise generate a new category.
-             Available categories:{Food,Bills,Salary,Travel,Shopping,Entertainment}, Description:${description}`
-        });
+             Available categories:{Food,Bills,Salary,Travel,Shopping,Entertainment}, Description:${description}`,
+    });
 
-            res.status(200).json({category:response.text});
-            }catch(err){
-            
-                next(err);
-            }
-        }else{
-            return res.status(400).json({message:"Bad request"});
-        }
-}
+    res.status(200).json({ category: response.text });
+  } catch (err) {
+    next(err);
+  }
+};
 
-export default {generateCategoryUsingAI, addExpense,getDailyBalance,editExpense, getMonthlyReport, deleteExpense, bulkDeleteExpense, getYearlyReport};
+export default {
+  generateCategoryUsingAI,
+  addExpense,
+  getDailyBalance,
+  editExpense,
+  getMonthlyReport,
+  deleteExpense,
+  getYearlyReport,
+};

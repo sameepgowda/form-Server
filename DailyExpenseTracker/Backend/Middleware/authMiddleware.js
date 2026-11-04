@@ -1,8 +1,10 @@
 import jwt from 'jsonwebtoken';
+import dotenv from "dotenv";
+dotenv.config();
 
+;
 
-
-const JWTkey = "JPHJ9qZNUADGiQxVCyOrQmeRf9vmdmGJ4rHoU5rktgO";
+const JWTkey = process.env.JWT_KEY;
 
 const authMiddleware = (req,res,next) =>{
     try{

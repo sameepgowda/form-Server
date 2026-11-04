@@ -6,6 +6,8 @@ import paymentRouter from "../Routes/paymentRoute.js";
 import {sequelize} from "../../Database/db.js";
 // import cors from "cors";
 import errorHandler from "../Controllers/errorHandler.js";
+import dotenv from "dotenv";
+dotenv.config();
 
 
 
@@ -34,7 +36,7 @@ app.use((req,res,next)=>{
     res.status(404).json({message:"Page not found"});
 });
 
-app.listen(3000);
+app.listen(Number(process.env.SERVER_PORT));
 
 
 

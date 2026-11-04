@@ -1,5 +1,4 @@
 import cashFreeService from "../Services/cashFreeService.js";
-import userController from "./userController.js";
 import {User} from "../../Database/index.js";
 
 

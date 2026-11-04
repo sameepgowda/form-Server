@@ -17,9 +17,7 @@ router.post("/getMonthlyReport",authMiddleware,expenseController.getMonthlyRepor
 
 router.delete("/deleteExpense/:id", authMiddleware, expenseController.deleteExpense);
 
-router.post("/bulkDeleteExpense",authMiddleware, expenseController.bulkDeleteExpense);
-
-router.post("/getYearlyReport",expenseController.getYearlyReport);
+router.get("/getYearlyReport/:year",authMiddleware, expenseController.getYearlyReport);
 
 
 export default router;

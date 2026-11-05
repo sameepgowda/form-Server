@@ -18,7 +18,7 @@ await sequelize.sync();
 const app = express();
 
 app.use(cors({
-    origin: "http://localhost:5173"
+    origin: process.env.CLIENT_ORIGIN
 }));
 
 
@@ -26,11 +26,11 @@ app.use(express.json());
 
 app.use(express.urlencoded({ extended: true }));
 
-app.use("/expenseTracker/user",userRouter);
-app.use("/expenseTracker/expense",expenseRouter);
-app.use("/expenseTracker/payment", paymentRouter);
+app.use("/api/expenseTracker/user",userRouter);
+app.use("/api/expenseTracker/expense",expenseRouter);
+app.use("/api/expenseTracker/payment", paymentRouter);
 
-app.use("/expenseTracker",errorHandler);
+app.use("/api/expenseTracker",errorHandler);
 
 app.use((req,res,next)=>{
     res.status(404).json({message:"Page not found"});

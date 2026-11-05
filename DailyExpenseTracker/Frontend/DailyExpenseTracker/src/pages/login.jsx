@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
-const BASE_URL = 'http://localhost:3000/expenseTracker/user';
+const BASE_URL = '/api/expenseTracker/user';
 const LOGIN_URL = `${BASE_URL}/login`;
 const FORGOT_PASSWORD_URL = `${BASE_URL}/forgotPassword`;
 

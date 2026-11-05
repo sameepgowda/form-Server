@@ -2,6 +2,10 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
+const BASE_URL = 'http://localhost:3000/expenseTracker/user';
+const LOGIN_URL = `${BASE_URL}/login`;
+const FORGOT_PASSWORD_URL = `${BASE_URL}/forgotPassword`;
+
 function Login() {
   const navigate = useNavigate();
 
@@ -57,10 +61,7 @@ function Login() {
     try {
       setLoggingIn(true);
 
-      const response = await axios.post(
-        "http://localhost:3000/expenseTracker/user/login",
-        payload
-      );
+      const response = await axios.post(LOGIN_URL, payload);
 
       if (response.status === 200) {
         sessionStorage.setItem("isPremium", response.data.isPremium == 1);
@@ -87,10 +88,7 @@ function Login() {
       setSendingReset(true);
       setResetStatus(null);
 
-      const response = await axios.post(
-        "http://localhost:3000/expenseTracker/user/forgotPassword",
-        payload
-      );
+      const response = await axios.post(FORGOT_PASSWORD_URL, payload);
       if (response.status >= 200 && response.status < 300) {
         setResetStatus("success");
       } else {

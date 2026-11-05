@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
-const BASE_URL = 'http://localhost:3000/expenseTracker/user';
+const BASE_URL = '/api/expenseTracker/user';
 const CREATE_USER_URL = `${BASE_URL}/createUser`;
 
 function Signup() {

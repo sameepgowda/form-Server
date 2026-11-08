@@ -357,12 +357,7 @@ function Home() {
         GET_EXPENSES_API,
         {
           date: selectedDate,
-        },
-        {
-          headers: {
-            Authorization: `${token}`,
-          },
-        },
+        }
       );
 
       setTransactions({
@@ -628,8 +623,7 @@ function Home() {
 
       const response = await axios.post(
         DOWNLOAD_MONTHLY_REPORT,
-        { month, year },
-        { headers: { Authorization: `${token}` } },
+        { month, year }
       );
 
       const { url } = response.data;

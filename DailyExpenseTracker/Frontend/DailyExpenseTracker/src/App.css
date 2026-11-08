@@ -2959,3 +2959,63 @@ body:has(#cf_checkout:not(:empty))::before {
   opacity: 0.6;
   cursor: not-allowed;
 }
+
+/* ========================================
+   "View notes" button and popup (Daily tab)
+   Append this to the end of your existing CSS file.
+======================================== */
+
+/* Button next to Edit / Delete */
+.notes-button {
+    padding: 8px 14px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    background: #f1f5f9;
+    color: #475569;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+}
+
+.notes-button:hover {
+    background: #475569;
+    border-color: #475569;
+    color: white;
+    transform: translateY(-2px);
+}
+
+@media (max-width: 600px) {
+    .notes-button {
+        padding: 7px 11px;
+    }
+
+    /* Three buttons: let them wrap instead of overflowing the row */
+    .transaction-buttons {
+        flex-wrap: wrap;
+        justify-content: flex-end;
+    }
+}
+
+/* Popup */
+.notes-modal {
+    max-width: 440px;
+}
+
+.notes-content {
+    margin-top: 18px;
+    padding: 14px 16px;
+    border: 1px solid #e9eaf3;
+    border-radius: 10px;
+    background: #fafaff;
+    color: #343650;
+    font-size: 14px;
+    line-height: 1.55;
+    white-space: pre-wrap;        /* keep line breaks the user typed */
+    overflow-wrap: anywhere;      /* long words / links wrap instead of overflowing */
+}
+
+.notes-empty {
+    margin-top: 18px;
+}

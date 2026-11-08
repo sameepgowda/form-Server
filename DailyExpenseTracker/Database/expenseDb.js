@@ -28,7 +28,13 @@ const ExpenseData = sequelize.define("ExpenseData",{
         type:DataTypes.STRING,
         defaultValue:null,
         allowNull:true
-    }
+    },
+    notes:{
+
+        type: DataTypes.STRING,
+        allowNull: true,
+        defaultValue: null
+      }
 },
 {tableName:"ExpenseData"})
 

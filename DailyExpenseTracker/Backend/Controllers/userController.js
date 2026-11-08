@@ -55,10 +55,14 @@ const userLogin = async (req, res) => {
           const token = jwt.sign({ UserId: userInfo.id }, JWTkey, {
             expiresIn: "1h",
           });
+          res.cookie("token", token, {
+            httpOnly: true,
+            sameSite: "strict",
+            maxAge: 60 * 60 * 1000,
+          });
           return res.status(200).json({
             message: "Login successful",
             success: true,
-            token: token,
             isPremium: userInfo.isPremium,
           });
         } else {
@@ -301,14 +305,13 @@ export default {
 //         [fn("count", col("id")), "expenseCount"],
 //       ],
 //       include: [{ model: Category,required:true, attributes: ["categoryName"] }]
-//       
+//
 //     },
 //   ],
 //  group:["Expense.UserId","Expense.CategoryId"],
 // });
 
 //Remember: Group belongs at the top level of the query, always.
-
 
 //If something fails mid-generation, the Promise rejects so your await throws an error hence
 // it moves to catch block.

@@ -118,7 +118,7 @@ const sendForgotPasswordLink = async (req, res) => {
       UserId: userInfo[0].id,
       isActive: true,
     });
-    const hyperLink = `http://localhost:3000/expenseTracker/user/showResetForm/${id}`;
+    const hyperLink = `${process.env.CLIENT_ORIGIN}/api/expenseTracker/user/showResetForm/${id}`;
     await emailService.sendEmail(hyperLink, receiverEmailId);
     return res.status(204).json();
   } catch (err) {

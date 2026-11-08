@@ -1,47 +1,79 @@
-import PDFDocument from "pdfkit";
 
-const generateExpensePDF = (expenses, UserId, month, year,username) => {
-    return new Promise((resolve, reject) => {
-        
-        const Year = String(year);
-        const monthName = new Date(2026, month - 1)
-            .toLocaleString("en-US", { month: "long" });
-        const doc = new PDFDocument();
-        const chunks = [];
+import PDFDocument from "pdfkit-table";
 
-        doc.on("data", chunk => chunks.push(chunk));
+const generateExpensePDF = async (expenses, UserId, month, year, username,
+            totalCreditOftheMonth,
+            totalExpenseOftheMonth,
+            totalSavings) => {
 
-        doc.on("end", () => {
-            resolve(Buffer.concat(chunks));
-        });
+            console.log("totalCredit",totalCreditOftheMonth)
 
-        doc.on("error", reject);
+    return new Promise(async (resolve, reject) => {
 
-        doc.fontSize(20).text(`Expense Report for ${monthName} ${Year}`, {
-            align: "center"
-        });
+        try {
+            const monthName = new Date(Number(year), Number(month) - 1)
+                .toLocaleString("en-US", { month: "long" });
 
-        doc.moveDown();
+            const doc = new PDFDocument({ margin: 40 });
+            const chunks = [];
 
-        doc.fontSize(12).text(`User ID: ${UserId}`);
-        doc.fontSize(12).text(`User name: ${username}`);
-        doc.text(`Generated on: ${new Date().toLocaleDateString()}`);
+            doc.on("data", chunk => chunks.push(chunk));
 
-        doc.moveDown();
+            doc.on("end", () => {
+                resolve(Buffer.concat(chunks));
+            });
 
-        expenses.forEach((expense, index) => {
-            doc.fontSize(11).text(
-                `${index + 1}. Date: ${expense.date}`
+            doc.on("error", reject);
+
+            doc.fontSize(20).text(
+                `Expense Report for ${monthName} ${year}`,
+                { align: "center" }
             );
 
-            doc.text(`Description: ${expense.description}`);
-            doc.text(`Category: ${expense.category}`);
-            doc.text(`Amount: ${expense.expenseAmount}`);
+            doc.moveDown();
+
+            doc.fontSize(12).text(`User ID: ${UserId}`);
+            doc.text(`User name: ${username}`);
+            doc.text(`Generated on: ${new Date().toLocaleDateString()}`);
+
+            doc.moveDown(2);
+
+            const table = {
+                headers: [
+                    "Date",
+                    "Description",
+                    "Category",
+                    "Amount"
+                ],
+
+                rows: expenses.map(expense => [
+                    String(expense.date),
+                    String(expense.description),
+                    String(expense.category),
+                    String(expense.expenseAmount)
+                ])
+            };
+
+            await doc.table(table, {
+                width: 515,
+                columnsSize: [100, 180, 115, 120],
+                padding: 5,
+                prepareHeader: () => doc.font("Helvetica-Bold").fontSize(10),
+                prepareRow: () => doc.font("Helvetica").fontSize(9)
+            });
 
             doc.moveDown();
-        });
 
-        doc.end();
+            doc.fontSize(12).text(`Total Income: ${totalCreditOftheMonth}`);
+            doc.text(`Total expense: ${totalExpenseOftheMonth}`);
+            doc.text(`Total savings : ${totalSavings}`);
+
+
+            doc.end();
+
+        } catch (error) {
+            reject(error);
+        }
     });
 };
 

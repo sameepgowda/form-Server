@@ -26,8 +26,9 @@ const downloadExpenses = async (req, res, next) => {
     try {
 
         // 1. Check premium status
-        const user = await User.findByPk(UserId);
-  const username = user.username;
+      
+       const user = await User.findByPk(UserId);
+       const username = user.username;
 
         if (!user) {
             return res.status(404).json({
@@ -49,8 +50,7 @@ const downloadExpenses = async (req, res, next) => {
       month < 12
         ? `${year}-${String(month + 1).padStart(2, "0")}-01`
         : `${year + 1}-01-01`;
-
-    const expenses = await ExpenseData.findAll({
+  const expenses = await ExpenseData.findAll({
       where: {
         UserId,
         date: { [Op.gte]: startDate, [Op.lt]: endDate },
@@ -61,13 +61,32 @@ const downloadExpenses = async (req, res, next) => {
       ],
       raw: true,
     });
+    console.log(expenses);
+
+    const totalExpenseOftheMonth = expenses.reduce((accum,obj)=>{
+        const modifiedAmt = Number(obj.expenseAmount);
+        return modifiedAmt<0? accum+modifiedAmt : accum
+        },0);
+    
+    const totalCreditOftheMonth = expenses.reduce((accum,obj)=>{
+        const modifiedAmt = Number(obj.expenseAmount);
+        return modifiedAmt>0? accum+modifiedAmt : accum
+        },0);
+
+    console.log("before",totalCreditOftheMonth)
+
+    const totalSavings = totalCreditOftheMonth+totalExpenseOftheMonth;
 
         // 3. Generate PDF
         const pdfBuffer = await generateExpensePDF(
             expenses,
             UserId,
             month,year,
-            username
+            username,
+            totalCreditOftheMonth,
+            totalExpenseOftheMonth,
+            totalSavings
+            
         );
 
         // 4. Generate unique S3 key

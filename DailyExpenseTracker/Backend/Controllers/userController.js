@@ -159,7 +159,7 @@ const showResetForm = async (req, res) => {
         "Reset password",
         "Enter your new password.",
         `
-            <form method="POST" action="/expenseTracker/user/resetPassword">
+            <form method="POST" action="${process.env.CLIENT_ORIGIN}/api/expenseTracker/user/resetPassword">
                 <input type="hidden" name="token" value="${token}">
                 <input type="password" name="newPassword" placeholder="New password" minlength="8" required>
                 <button type="submit">Change password</button>

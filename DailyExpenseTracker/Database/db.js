@@ -6,10 +6,17 @@ dotenv.config();
 
 const password = String(process.env.DB_PASSWORD);
 
-const sequelize = new Sequelize(process.env.SCHEMA_NAME, process.env.DB_USER, password, {
-    host: process.env.RDS_ENDPOINT,
+// const sequelize = new Sequelize(process.env.SCHEMA_NAME, process.env.DB_USER, password, {
+//     host: process.env.RDS_ENDPOINT,
+//     dialect: 'mysql',
+//     logging: false   // set to console.log to see the generated SQL
+// });
+
+const sequelize = new Sequelize("daily-expense-tracker", root, password, {
+    host: localhost,
     dialect: 'mysql',
-    logging: false   // set to console.log to see the generated SQL
+    logging: false ,
+    port:3306  // set to console.log to see the generated SQL
 });
 
 

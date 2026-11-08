@@ -28,6 +28,8 @@ const EMPTY_FORM = {
   notes: "",
 };
 
+axios.defaults.withCredentials = true;
+
 function Home() {
   const [selectedDate, setSelectedDate] = useState(getTodayDate());
 
@@ -142,16 +144,13 @@ function Home() {
 
   // Premium subscription button click
   const handlePremiumSubscriptionClick = async () => {
-    const token = sessionStorage.getItem("token");
+    
     setPaymentPopup(null);
 
     try {
       const response = await axios.post(
         HANDLE_PREMIUM_SUBSCRIPTION,
-        {},
-        {
-          headers: { Authorization: `${token}` },
-        },
+        {}
       );
 
       const cashfree = await load({ mode: "sandbox" });
@@ -175,10 +174,7 @@ function Home() {
         VERIFY_PAYMENT,
         {
           order_id: response.data.orderId,
-        },
-        {
-          headers: { Authorization: `${token}` },
-        },
+        }
       );
 
       // Payment verified: mark the user as premium for this session.
@@ -205,11 +201,9 @@ function Home() {
 
   // Show leaderboard (to be implemented)
   const showLeaderboard = async () => {
-    const token = sessionStorage.getItem("token");
+    
     try {
-      const response = await axios.get(GET_LEADERBOARD_DATA, {
-        headers: { Authorization: `${token}` },
-      });
+      const response = await axios.get(GET_LEADERBOARD_DATA);
 
       setLeaderboardData(response.data.leaderBoardList || []);
       setLeaderboardPopup("success");
@@ -234,11 +228,9 @@ function Home() {
     try {
       setSuggestingCategory(true);
 
-      const token = sessionStorage.getItem("token");
+      
       const payload = { description: formData.description };
-      const response = await axios.post(GENERATE_AI_CATEGORY, payload, {
-        headers: { Authorization: `${token}` },
-      });
+      const response = await axios.post(GENERATE_AI_CATEGORY, payload);
       const suggestedCategory = String(response.data.category || "").trim();
 
       if (suggestedCategory) {
@@ -279,7 +271,7 @@ function Home() {
       setMonthlyLoading(true);
       setMonthlyError("");
 
-      const token = sessionStorage.getItem("token");
+      
       const [year, month] = selectedMonth.split("-").map(Number);
 
       const payload = {
@@ -287,11 +279,7 @@ function Home() {
         year: year,
       };
 
-      const response = await axios.post(MONTHLY_REPORT_API, payload, {
-        headers: {
-          Authorization: `${token}`,
-        },
-      });
+      const response = await axios.post(MONTHLY_REPORT_API, payload);
 
       // Ignore this response if the user has already moved to another month
       if (requestId !== monthlyRequestId.current) return;
@@ -326,11 +314,9 @@ function Home() {
       setYearlyLoading(true);
       setYearlyError("");
 
-      const token = sessionStorage.getItem("token");
+      
 
-      const response = await axios.get(`${GET_YEARLY_REPORT}/${selectedYear}`, {
-        headers: { Authorization: `${token}` },
-      });
+      const response = await axios.get(`${GET_YEARLY_REPORT}/${selectedYear}`);
 
       // Ignore this response if the user has already moved to another year
       if (requestId !== yearlyRequestId.current) return;
@@ -365,7 +351,7 @@ function Home() {
       setLoading(true);
       setError("");
 
-      const token = sessionStorage.getItem("token");
+      
 
       const response = await axios.post(
         GET_EXPENSES_API,
@@ -557,14 +543,10 @@ function Home() {
   const confirmDelete = async () => {
     if (!transactionToDelete) return;
 
-    const token = sessionStorage.getItem("token");
+    
 
     try {
-      await axios.delete(`${DELETE_EXPENSE}/${transactionToDelete.id}`, {
-        headers: {
-          Authorization: `${token}`,
-        },
-      });
+      await axios.delete(`${DELETE_EXPENSE}/${transactionToDelete.id}`);
 
       setShowDeleteConfirm(false);
       setTransactionToDelete(null);
@@ -614,20 +596,12 @@ function Home() {
     try {
       setSubmitting(true);
 
-      const token = sessionStorage.getItem("token");
+      
 
       if (editingTransaction) {
-        await axios.post(EDIT_EXPENSE_API, payload, {
-          headers: {
-            Authorization: `${token}`,
-          },
-        });
+        await axios.post(EDIT_EXPENSE_API, payload);
       } else {
-        await axios.post(ADD_EXPENSE_API, payload, {
-          headers: {
-            Authorization: `${token}`,
-          },
-        });
+        await axios.post(ADD_EXPENSE_API, payload);
       }
 
       setShowForm(false);
@@ -649,7 +623,7 @@ function Home() {
     const newTab = window.open("", "_blank");
 
     try {
-      const token = sessionStorage.getItem("token");
+      
       const [year, month] = selectedMonth.split("-").map(Number);
 
       const response = await axios.post(

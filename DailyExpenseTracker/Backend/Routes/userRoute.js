@@ -1,14 +1,19 @@
 import express from "express";
 import userController from "../Controllers/userController.js";
 import authMiddleware from "../Middleware/authMiddleware.js";
-import rateLimit from "express-rate-limit";
+import rateLimit, { ipKeyGenerator } from "express-rate-limit";
 
 const loginLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000,   
-    max: 5,                     
+    windowMs: 15 * 60 * 1000,
+    max: 5,
     message: { message: "Too many login attempts. Please try again after 15 minutes." },
-    standardHeaders: true,     
-    legacyHeaders: false
+    standardHeaders: true,
+    legacyHeaders: false,
+    skipSuccessfulRequests: true, 
+    keyGenerator: (req) => {
+        const email = (req.body?.email || "").toLowerCase().trim();
+        return `${ipKeyGenerator(req.ip)}:${email}`;
+    },
 });
 
 

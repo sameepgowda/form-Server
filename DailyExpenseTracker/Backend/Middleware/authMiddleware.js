@@ -8,8 +8,7 @@ const JWTkey = process.env.JWT_KEY;
 
 const authMiddleware = (req,res,next) =>{
     try{
-        console.log("headers",req.headers);
-        const authToken = req.headers.authorization;
+        const authToken = req.cookies?.token;
         if(!authToken){
             return res.status(401).json({message:"Access denied. No token provided"});
         }else{
